@@ -7,6 +7,8 @@ import SignUp from './components/SignUp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import PrivateRoute from './routes/PrivateRoute.jsx';
 import Expenses from './pages/Expenses';
+import Reports from './pages/Reports.jsx';
+
 
 function App() {
   return (
@@ -20,7 +22,7 @@ function App() {
               <Route path="/signup" element={<SignUp />} />
 
               {/* Protected routes */}
-              <Route path="/" element={
+              <Route path="/dashboard" element={
                 <PrivateRoute>
                   <Dashboard />
                 </PrivateRoute>
@@ -28,6 +30,11 @@ function App() {
               <Route path="/expenses" element={
                 <PrivateRoute>
                   <Expenses />
+                </PrivateRoute>
+              } />
+              <Route path="/reports" element={
+                <PrivateRoute>
+                  <Reports />
                 </PrivateRoute>
               } />
 

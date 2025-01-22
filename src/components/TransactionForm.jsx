@@ -10,27 +10,46 @@ export default function TransactionForm({ onSubmit, isLoading }) {
     description: '',
     date: format(new Date(), 'yyyy-MM-dd'), // Add default date
   });
+  const [error, setError] = useState(null);
+
+  const validateForm = () => {
+    if (!formData.amount || Number(formData.amount) <= 0) {
+      setError('Amount must be greater than 0');
+      return false;
+    }
+    if (!formData.category) {
+      setError('Please select a category');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     
-    // Create a date at noon to avoid timezone issues
-    const selectedDate = new Date(formData.date);
-    selectedDate.setHours(12, 0, 0, 0);
-    
-    await onSubmit({
-      ...formData,
-      amount: Number(formData.amount),
-      date: selectedDate.getTime(), // Send as timestamp number
-    });
-    
-    setFormData({ 
-      type: 'expense', 
-      amount: '', 
-      category: '', 
-      description: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-    });
+    if (!validateForm()) return;
+
+    try {
+      const selectedDate = new Date(formData.date);
+      selectedDate.setHours(12, 0, 0, 0);
+      
+      await onSubmit({
+        ...formData,
+        amount: Number(formData.amount),
+        date: selectedDate.getTime(), // Send as timestamp number
+      });
+      
+      setFormData({ 
+        type: 'expense', 
+        amount: '', 
+        category: '', 
+        description: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+      });
+    } catch (error) {
+      setError('Failed to add transaction');
+    }
   };
 
   return (
@@ -119,6 +138,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
         >
           {isLoading ? 'Adding...' : `Add ${formData.type.charAt(0).toUpperCase() + formData.type.slice(1)}`}
         </button>
+        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
       </div>
     </form>
   );

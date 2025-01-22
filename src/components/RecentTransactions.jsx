@@ -4,25 +4,29 @@ import { format } from 'date-fns';
 export default function RecentTransactions({ transactions }) {
     const formatTransactionDate = (timestamp) => {
         try {
-            if (!timestamp) return 'No date';
-            // Ensure we're working with a number
-            const dateNumber = typeof timestamp === 'number' ? timestamp : Number(timestamp);
+            if (!timestamp) return 'N/A';
+            const dateNumber = Number(timestamp);
             if (isNaN(dateNumber)) return 'Invalid date';
             return format(dateNumber, 'MMM dd, yyyy');
         } catch (error) {
-            console.error('Date formatting error:', error, timestamp);
+            console.error('Date formatting error:', error);
             return 'Invalid date';
         }
     };
 
+    const sortedTransactions = React.useMemo(() => 
+        [...transactions].sort((a, b) => b.date - a.date),
+        [transactions]
+    );
+
     return (
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-gray-800">Recent Transactions</h3>
-            {transactions.length === 0 ? (
+            {sortedTransactions.length === 0 ? (
                 <p className="text-sm sm:text-base text-center text-gray-500 py-4">No transactions yet</p>
             ) : (
                 <div className="space-y-3 sm:space-y-4">
-                    {transactions.map((transaction) => (
+                    {sortedTransactions.map((transaction) => (
                         <div
                             key={transaction.id}
                             className={`flex justify-between items-center p-3 sm:p-4 rounded-lg border

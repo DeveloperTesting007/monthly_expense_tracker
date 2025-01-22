@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -25,10 +26,12 @@ export default function Dashboard() {
 
   const fetchTransactions = async () => {
     try {
+      setError(null);
       const recentTransactions = await getRecentTransactions(currentUser.uid);
       setTransactions(recentTransactions);
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      setError(error.message);
     }
   };
 
@@ -105,6 +108,24 @@ export default function Dashboard() {
 
             {/* Main Content */}
             <div className="space-y-6">
+              {error && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                  <div className="flex">
+                    <div className="flex-1">
+                      <p className="text-sm text-yellow-700">{error}</p>
+                    </div>
+                    <button 
+                      onClick={() => setError(null)}
+                      className="text-yellow-700"
+                    >
+                      <span className="sr-only">Dismiss</span>
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
               <TransactionForm onSubmit={handleAddTransaction} isLoading={isLoading} />
               <RecentTransactions transactions={transactions} />
             </div>
