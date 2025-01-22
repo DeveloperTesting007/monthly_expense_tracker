@@ -23,7 +23,7 @@ export default function Login() {
         try {
             setLoading(true);
             await login(email, password);
-            navigate('/');
+            navigate('/dashboard');  // Changed from '/' to '/dashboard'
         } catch (err) {
             // Error is handled in AuthContext
         } finally {
@@ -35,7 +35,7 @@ export default function Login() {
         try {
             setLoading(true);
             await signInWithGoogle();
-            navigate('/');
+            navigate('/dashboard');  // Changed from '/' to '/dashboard'
         } catch (err) {
             // Error handled by AuthContext
         } finally {
