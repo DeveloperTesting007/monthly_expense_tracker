@@ -18,7 +18,7 @@ export default function Sidebar({ onClose, isMobileOpen }) {
 
     const navItems = [
         { title: 'Overview', path: '/dashboard', icon: <MdDashboard size={24} /> },
-        { title: 'Expenses', path: '/expenses', icon: <MdAttachMoney size={24} /> },
+        { title: 'Add Transaction', path: '/expenses', icon: <MdAttachMoney size={24} /> },
         { title: 'Reports', path: '/reports', icon: <MdInsertChart size={24} /> },
         { title: 'Settings', path: '/settings', icon: <MdSettings size={24} /> },
     ];

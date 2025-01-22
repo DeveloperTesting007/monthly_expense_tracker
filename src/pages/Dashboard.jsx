@@ -11,7 +11,7 @@ export default function Dashboard() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState([]);  // Initialize as empty array
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [error, setError] = useState(null);
@@ -32,15 +32,18 @@ export default function Dashboard() {
     setIsMobileMenuOpen(false);
   }, [location]);
 
+  // Update fetchTransactions to ensure array handling
   const fetchTransactions = async () => {
     setIsLoadingTransactions(true);
     try {
       setError(null);
-      const recentTransactions = await getRecentTransactions(currentUser.uid);
-      setTransactions(recentTransactions);
+      const result = await getRecentTransactions(currentUser.uid);
+      // Ensure we're setting an array
+      setTransactions(Array.isArray(result.transactions) ? result.transactions : []);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       setError(error.message);
+      setTransactions([]); // Set empty array on error
     } finally {
       setIsLoadingTransactions(false);
     }
@@ -67,16 +70,19 @@ export default function Dashboard() {
     }
   }
 
-  const filteredTransactions = transactions.filter(transaction => {
-    if (filter === 'all') return true;
-    return transaction.type === filter;
-  });
+  // Safe array operations with type checking
+  const filteredTransactions = Array.isArray(transactions) 
+    ? transactions.filter(transaction => {
+        if (filter === 'all') return true;
+        return transaction.type === filter;
+      })
+    : [];
 
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     if (sortBy === 'date') {
       return sortOrder === 'desc' 
-        ? new Date(b.date) - new Date(a.date)
-        : new Date(a.date) - new Date(b.date);
+        ? new Date(b.date).getTime() - new Date(a.date).getTime()
+        : new Date(a.date).getTime() - new Date(b.date).getTime();
     }
     return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
   });
