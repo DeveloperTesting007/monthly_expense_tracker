@@ -34,9 +34,9 @@ export default function TransactionForm({ onSubmit, isLoading }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-lg font-semibold mb-6 text-gray-800">Add Transaction</h3>
-      <div className="grid gap-5">
+    <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+      <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-gray-800">Add Transaction</h3>
+      <div className="grid gap-4 sm:gap-5">
         <div className="flex gap-4">
           <label className="flex items-center hover:cursor-pointer">
             <input
@@ -47,7 +47,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="mr-2 text-red-500 focus:ring-red-400"
             />
-            <span className="text-gray-700">Expense</span>
+            <span className="text-sm sm:text-base text-gray-700">Expense</span>
           </label>
           <label className="flex items-center hover:cursor-pointer">
             <input
@@ -58,17 +58,17 @@ export default function TransactionForm({ onSubmit, isLoading }) {
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="mr-2 text-green-500 focus:ring-green-400"
             />
-            <span className="text-gray-700">Income</span>
+            <span className="text-sm sm:text-base text-gray-700">Income</span>
           </label>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           <input
             type="number"
             placeholder="Amount"
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            className="border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-400 
+            className="text-sm sm:text-base border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-indigo-400 
               focus:border-transparent outline-none transition-all duration-200"
             required
           />
@@ -77,7 +77,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
             type="date"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-400 
+            className="text-sm sm:text-base border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-indigo-400 
               focus:border-transparent outline-none transition-all duration-200"
             required
           />
@@ -86,7 +86,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
         <select
           value={formData.category}
           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          className="border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-400 
+          className="text-sm sm:text-base border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-indigo-400 
             focus:border-transparent outline-none transition-all duration-200"
           required
         >
@@ -103,7 +103,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
           placeholder="Description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-400 
+          className="text-sm sm:text-base border border-gray-300 rounded-lg p-2.5 sm:p-3 focus:ring-2 focus:ring-indigo-400 
             focus:border-transparent outline-none transition-all duration-200"
           required
         />
@@ -111,7 +111,7 @@ export default function TransactionForm({ onSubmit, isLoading }) {
         <button
           type="submit"
           disabled={isLoading}
-          className={`py-3 px-4 rounded-lg text-white font-medium transition-all duration-200
+          className={`text-sm sm:text-base py-2.5 sm:py-3 px-4 rounded-lg text-white font-medium transition-all duration-200
             ${formData.type === 'income' 
               ? 'bg-green-500 hover:bg-green-600' 
               : 'bg-red-500 hover:bg-red-600'}
