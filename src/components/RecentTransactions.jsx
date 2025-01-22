@@ -1,63 +1,149 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 
-export default function RecentTransactions({ transactions }) {
-    const formatTransactionDate = (timestamp) => {
-        try {
-            if (!timestamp) return 'N/A';
-            const dateNumber = Number(timestamp);
-            if (isNaN(dateNumber)) return 'Invalid date';
-            return format(dateNumber, 'MMM dd, yyyy');
-        } catch (error) {
-            console.error('Date formatting error:', error);
-            return 'Invalid date';
-        }
-    };
-
-    const sortedTransactions = React.useMemo(() => 
-        [...transactions].sort((a, b) => b.date - a.date),
-        [transactions]
-    );
-
-    return (
-        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-gray-800">Recent Transactions</h3>
-            {sortedTransactions.length === 0 ? (
-                <p className="text-sm sm:text-base text-center text-gray-500 py-4">No transactions yet</p>
-            ) : (
-                <div className="space-y-3 sm:space-y-4">
-                    {sortedTransactions.map((transaction) => (
-                        <div
-                            key={transaction.id}
-                            className={`flex justify-between items-center p-3 sm:p-4 rounded-lg border
-                ${transaction.type === 'income'
-                                    ? 'border-green-100 bg-green-50'
-                                    : 'border-red-100 bg-red-50'} 
-                hover:shadow-md transition-shadow duration-200`}
-                        >
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 sm:gap-3">
-                                    <span className={`text-base sm:text-lg ${transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-                                        }`}>
-                                        {transaction.type === 'income' ? '+' : '-'}
-                                    </span>
-                                    <div>
-                                        <p className="text-sm sm:text-base font-medium text-gray-800">{transaction.category}</p>
-                                        <p className="text-xs sm:text-sm text-gray-600">{transaction.description}</p>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                                    {formatTransactionDate(transaction.date)}
-                                </p>
-                            </div>
-                            <p className={`font-semibold text-base sm:text-lg ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                ${transaction.amount.toFixed(2)}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            )}
+// Loading skeleton component
+const TransactionSkeleton = () => (
+  <div className="animate-pulse">
+    <div className="p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-32"></div>
+            <div className="h-3 bg-gray-200 rounded w-24"></div>
+          </div>
         </div>
+        <div className="h-4 bg-gray-200 rounded w-16"></div>
+      </div>
+    </div>
+  </div>
+);
+
+export default function RecentTransactions({ transactions, isLoading }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  if (isLoading) {
+    return (
+      <div className="divide-y divide-gray-200 bg-white rounded-lg">
+        {[...Array(5)].map((_, index) => (
+          <TransactionSkeleton key={index} />
+        ))}
+      </div>
     );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div className="text-center py-8 bg-white rounded-lg shadow">
+        <p className="text-gray-500">No transactions found</p>
+      </div>
+    );
+  }
+
+  const toggleTransaction = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  return (
+    <ul className="divide-y divide-gray-200">
+      {transactions.map((transaction) => (
+        <li key={transaction.id} className="overflow-hidden">
+          {/* Transaction Summary */}
+          <div
+            onClick={() => toggleTransaction(transaction.id)}
+            className="p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
+          >
+            <div className="flex items-center space-x-3">
+              <div className={`p-2 rounded-full ${
+                transaction.type === 'income' 
+                  ? 'bg-green-100 text-green-600'
+                  : 'bg-red-100 text-red-600'
+              }`}>
+                {transaction.type === 'income' ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">{transaction.description}</p>
+                <p className="text-sm text-gray-500">
+                  {format(new Date(transaction.date), 'MMM d, yyyy')}
+                  {transaction.category && ` • ${transaction.category}`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className={`text-right ${
+                transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+              }`}>
+                <p className="font-medium">
+                  {transaction.type === 'income' ? '+' : '-'}
+                  ${transaction.amount.toFixed(2)}
+                </p>
+              </div>
+              <svg
+                className={`w-5 h-5 transform transition-transform duration-200 ${
+                  expandedId === transaction.id ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Collapsible Details */}
+          <div
+            className={`
+              transition-all duration-200 ease-in-out bg-gray-50
+              ${expandedId === transaction.id ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}
+            `}
+          >
+            <div className="px-4 py-3 space-y-3 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Type</p>
+                  <p className="text-base text-gray-900 capitalize">{transaction.type}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Category</p>
+                  <p className="text-base text-gray-900">{transaction.category}</p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Description</p>
+                <p className="text-base text-gray-900">{transaction.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Date</p>
+                  <p className="text-base text-gray-900">
+                    {format(new Date(transaction.date), 'MMMM d, yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Amount</p>
+                  <p className={`text-base font-medium ${
+                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {transaction.type === 'income' ? '+' : '-'}
+                    ${transaction.amount.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
