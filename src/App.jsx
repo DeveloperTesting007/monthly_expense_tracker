@@ -4,7 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { MessageProvider } from './contexts/MessageProvider';
 import Login from './components/Login.jsx';
 import SignUp from './components/SignUp.jsx';
-import Dashboard from './components/Dashboard.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 import PrivateRoute from './routes/PrivateRoute.jsx';
 
 function App() {
