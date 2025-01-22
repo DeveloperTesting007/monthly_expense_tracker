@@ -6,6 +6,7 @@ import Login from './components/Login.jsx';
 import SignUp from './components/SignUp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import PrivateRoute from './routes/PrivateRoute.jsx';
+import Expenses from './pages/Expenses';
 
 function App() {
   return (
@@ -22,6 +23,11 @@ function App() {
               <Route path="/" element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              } />
+              <Route path="/expenses" element={
+                <PrivateRoute>
+                  <Expenses />
                 </PrivateRoute>
               } />
 
