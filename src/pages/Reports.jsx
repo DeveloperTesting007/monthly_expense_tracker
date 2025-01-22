@@ -88,10 +88,39 @@ export default function Reports() {
     return categoryTotals;
   };
 
-  // Chart configurations
+  // Add cash balance calculation
+  const calculateCashBalance = () => {
+    const incomeByMonth = Array(12).fill(0);
+    const expensesByMonth = Array(12).fill(0);
+    const balanceByMonth = Array(12).fill(0);
+
+    transactions.forEach(transaction => {
+      const date = new Date(Number(transaction.date));
+      if (date.getFullYear() === selectedYear) {
+        const month = date.getMonth();
+        if (transaction.type === 'income') {
+          incomeByMonth[month] += transaction.amount;
+        } else {
+          expensesByMonth[month] += transaction.amount;
+        }
+      }
+    });
+
+    // Calculate running balance
+    let runningBalance = 0;
+    balanceByMonth.forEach((_, index) => {
+      runningBalance += incomeByMonth[index] - expensesByMonth[index];
+      balanceByMonth[index] = runningBalance;
+    });
+
+    return { incomeByMonth, expensesByMonth, balanceByMonth };
+  };
+
   const { months, monthlyIncomes, monthlyExpenses } = processMonthlyData();
   const categoryTotals = processCategoryData();
+  const { incomeByMonth, expensesByMonth, balanceByMonth } = calculateCashBalance();
 
+  // Chart configurations
   const lineChartData = {
     labels: months,
     datasets: [
@@ -126,6 +155,21 @@ export default function Reports() {
           'rgba(245, 158, 11, 0.8)',
         ],
       },
+    ],
+  };
+
+  // Add balance chart data
+  const balanceChartData = {
+    labels: Array.from({ length: 12 }, (_, i) => format(new Date(selectedYear, i), 'MMM')),
+    datasets: [
+      {
+        label: 'Cash Balance',
+        data: balanceByMonth,
+        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(99, 102, 241, 0.5)',
+        tension: 0.4,
+        fill: true,
+      }
     ],
   };
 
@@ -190,6 +234,33 @@ export default function Reports() {
                           position: 'top',
                         },
                       },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Cash Balance Trend */}
+              <div className="bg-white p-4 rounded-lg shadow-lg md:col-span-2">
+                <h3 className="text-lg font-semibold mb-4">Cash Balance Trend</h3>
+                <div className="h-[300px]">
+                  <Line 
+                    data={balanceChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { position: 'top' },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                        }
+                      }
                     }}
                   />
                 </div>
@@ -209,20 +280,26 @@ export default function Reports() {
                 </div>
               </div>
 
-              {/* Summary Stats */}
+              {/* Summary Stats with Balance */}
               <div className="bg-white p-4 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Annual Summary</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-green-50">
                     <p className="text-sm text-green-600">Total Income</p>
                     <p className="text-2xl font-bold text-green-700">
-                      ${monthlyIncomes.reduce((a, b) => a + b, 0).toFixed(2)}
+                      ${incomeByMonth.reduce((a, b) => a + b, 0).toFixed(2)}
                     </p>
                   </div>
                   <div className="p-4 rounded-lg bg-red-50">
                     <p className="text-sm text-red-600">Total Expenses</p>
                     <p className="text-2xl font-bold text-red-700">
-                      ${monthlyExpenses.reduce((a, b) => a + b, 0).toFixed(2)}
+                      ${expensesByMonth.reduce((a, b) => a + b, 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="col-span-2 p-4 rounded-lg bg-indigo-50">
+                    <p className="text-sm text-indigo-600">Current Balance</p>
+                    <p className="text-2xl font-bold text-indigo-700">
+                      ${balanceByMonth[balanceByMonth.length - 1].toFixed(2)}
                     </p>
                   </div>
                 </div>
