@@ -6,7 +6,7 @@ import Login from './components/Login.jsx';
 import SignUp from './components/SignUp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import PrivateRoute from './routes/PrivateRoute.jsx';
-import Expenses from './pages/Expenses';
+import AddTransaction from './pages/AddTransaction.jsx';
 import Reports from './pages/Reports.jsx';
 
 
@@ -29,7 +29,7 @@ function App() {
               } />
               <Route path="/expenses" element={
                 <PrivateRoute>
-                  <Expenses />
+                  <AddTransaction />
                 </PrivateRoute>
               } />
               <Route path="/reports" element={
