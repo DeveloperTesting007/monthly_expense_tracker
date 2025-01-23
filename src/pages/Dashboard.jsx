@@ -129,14 +129,6 @@ export default function Dashboard() {
                 <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Welcome Back!</h1>
                 <p className="text-sm lg:text-base text-gray-600">Here's your financial overview</p>
               </div>
-
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 lg:px-4 lg:py-2 bg-red-600 text-white text-sm lg:text-base 
-                  rounded-lg hover:bg-red-700 transition-colors duration-200"
-              >
-                Logout
-              </button>
             </div>
 
             {/* Summary Cards */}

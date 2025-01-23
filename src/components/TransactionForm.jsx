@@ -129,6 +129,45 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
         </div>
       </div>
 
+      {/* Category Select */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Category
+        </label>
+        <div className="relative">
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className={`
+              block w-full rounded-lg border-0 py-3 px-3
+              text-gray-900 ring-1 ring-inset
+              focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6
+              appearance-none bg-white
+              ${errors.category
+                ? 'ring-red-300 focus:ring-red-500'
+                : 'ring-gray-300 focus:ring-blue-500'
+              }
+            `}
+          >
+            <option value="">Select category</option>
+            {categories[formData.type].map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+        {errors.category && (
+          <p className="mt-2 text-sm text-red-600">{errors.category}</p>
+        )}
+      </div>
+
       {/* Amount and Date Inputs */}
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="relative">
@@ -211,45 +250,6 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
         />
         {errors.description && (
           <p className="mt-2 text-sm text-red-600">{errors.description}</p>
-        )}
-      </div>
-
-      {/* Category Select */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Category
-        </label>
-        <div className="relative">
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className={`
-              block w-full rounded-lg border-0 py-3 px-3
-              text-gray-900 ring-1 ring-inset
-              focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6
-              appearance-none bg-white
-              ${errors.category
-                ? 'ring-red-300 focus:ring-red-500'
-                : 'ring-gray-300 focus:ring-blue-500'
-              }
-            `}
-          >
-            <option value="">Select category</option>
-            {categories[formData.type].map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-        {errors.category && (
-          <p className="mt-2 text-sm text-red-600">{errors.category}</p>
         )}
       </div>
 
