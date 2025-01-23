@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import TransactionForm from '../components/TransactionForm';
 import RecentTransactions from '../components/RecentTransactions';
 import SummaryCards from '../components/SummaryCards';
-import { addTransaction, getRecentTransactions } from '../services/transactionService';
+import { addTransaction, getRecentTransactions, getAllTransactions } from '../services/transactionService';
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -28,9 +28,11 @@ export default function Dashboard() {
     sortOrder: 'desc'
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [isLoadingAllTransactions, setIsLoadingAllTransactions] = useState(true);
 
   useEffect(() => {
-    fetchTransactions();
+    fetchAllData();
   }, [currentUser]);
 
   useEffect(() => {
@@ -54,11 +56,34 @@ export default function Dashboard() {
     }
   };
 
+  const fetchAllData = async () => {
+    setIsLoadingTransactions(true);
+    setIsLoadingAllTransactions(true);
+    try {
+      setError(null);
+      // Fetch recent transactions for display
+      const recentResult = await getRecentTransactions(currentUser.uid);
+      setTransactions(Array.isArray(recentResult.transactions) ? recentResult.transactions : []);
+      
+      // Fetch all transactions for calculations
+      const allResult = await getAllTransactions(currentUser.uid);
+      setAllTransactions(Array.isArray(allResult.transactions) ? allResult.transactions : []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setError(error.message);
+      setTransactions([]);
+      setAllTransactions([]);
+    } finally {
+      setIsLoadingTransactions(false);
+      setIsLoadingAllTransactions(false);
+    }
+  };
+
   const handleAddTransaction = async (transaction) => {
     setIsLoading(true);
     try {
       await addTransaction(currentUser.uid, transaction);
-      await fetchTransactions();
+      await fetchAllData(); // Update both recent and all transactions
     } catch (error) {
       console.error('Error adding transaction:', error);
     } finally {
@@ -169,8 +194,11 @@ export default function Dashboard() {
             </div>
 
             {/* Summary Cards - Updated grid for larger screens */}
-            <div className="mb-8"> {/* Increased margin bottom */}
-              <SummaryCards transactions={transactions} />
+            <div className="mb-8">
+              <SummaryCards 
+                transactions={allTransactions} 
+                isLoading={isLoadingAllTransactions}
+              />
             </div>
 
             {/* Main Content Area */}
