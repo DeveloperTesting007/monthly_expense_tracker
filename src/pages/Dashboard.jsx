@@ -16,13 +16,18 @@ export default function Dashboard() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filter, setFilter] = useState('all'); // all, income, expense
-  const [sortBy, setSortBy] = useState('date'); // date, amount
-  const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
   const [isRecentTransactionsOpen, setIsRecentTransactionsOpen] = useState(true);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+  const [filters, setFilters] = useState({
+    type: 'all',
+    dateRange: 'all',
+    searchQuery: '',
+    sortBy: 'date',
+    sortOrder: 'desc'
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -70,29 +75,62 @@ export default function Dashboard() {
     }
   }
 
-  // Safe array operations with type checking
-  const filteredTransactions = Array.isArray(transactions)
-    ? transactions.filter(transaction => {
-      if (filter === 'all') return true;
-      return transaction.type === filter;
-    })
-    : [];
+  // Updated filtering and sorting logic
+  const filteredAndSortedTransactions = React.useMemo(() => {
+    if (!Array.isArray(transactions)) return [];
 
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    if (sortBy === 'date') {
-      return sortOrder === 'desc'
-        ? new Date(b.date).getTime() - new Date(a.date).getTime()
-        : new Date(a.date).getTime() - new Date(b.date).getTime();
-    }
-    return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
-  });
+    return [...transactions]
+      .filter(transaction => {
+        // Type filter
+        if (filters.type !== 'all' && transaction.type !== filters.type) return false;
+        
+        // Search filter
+        if (filters.searchQuery && !transaction.description.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
+          return false;
+        }
 
-  const paginatedTransactions = sortedTransactions.slice(
+        // Date range filter
+        if (filters.dateRange !== 'all') {
+          const transactionDate = new Date(transaction.date);
+          const today = new Date();
+          const diffTime = Math.abs(today - transactionDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          switch (filters.dateRange) {
+            case 'today':
+              return diffDays <= 1;
+            case 'week':
+              return diffDays <= 7;
+            case 'month':
+              return diffDays <= 30;
+            default:
+              return true;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const direction = filters.sortOrder === 'desc' ? 1 : -1;
+        
+        if (filters.sortBy === 'date') {
+          return (new Date(b.date) - new Date(a.date)) * direction;
+        }
+        return (b.amount - a.amount) * direction;
+      });
+  }, [transactions, filters]);
+
+  const handleFilterChange = (name, value) => {
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const paginatedTransactions = filteredAndSortedTransactions.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -194,85 +232,211 @@ export default function Dashboard() {
 
               {/* Collapsible Recent Transactions */}
               <div className="bg-white rounded-lg shadow overflow-hidden">
-                <button
-                  onClick={() => setIsRecentTransactionsOpen(prev => !prev)}
-                  className="w-full px-4 py-3 flex justify-between items-center border-b border-gray-200 hover:bg-gray-50"
-                >
-                  <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
-                  <svg
-                    className={`w-5 h-5 transform transition-transform ${isRecentTransactionsOpen ? 'rotate-180' : ''
-                      }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                <div
-                  className={`transition-all duration-300 ease-in-out ${isRecentTransactionsOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
-                    } overflow-hidden`}
-                >
-                  <div className="p-4">
-                    {/* Transaction Controls */}
-                    <div className="flex flex-wrap gap-4 items-center mb-4">
-                      <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        className="rounded-lg border-gray-300 text-sm"
-                      >
-                        <option value="all">All Transactions</option>
-                        <option value="income">Income Only</option>
-                        <option value="expense">Expenses Only</option>
-                      </select>
-
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="rounded-lg border-gray-300 text-sm"
-                      >
-                        <option value="date">Sort by Date</option>
-                        <option value="amount">Sort by Amount</option>
-                      </select>
-
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
                       <button
-                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        className="p-2 rounded-lg hover:bg-gray-100"
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="sm:hidden p-2 hover:bg-gray-50 rounded-lg transition-colors"
                       >
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
                       </button>
                     </div>
 
-                    <RecentTransactions
-                      transactions={paginatedTransactions}
-                      isLoading={isLoadingTransactions}
-                    />
+                    {/* Desktop Filters */}
+                    <div className="hidden sm:flex items-center gap-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search transactions..."
+                          value={filters.searchQuery}
+                          onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+                          className="w-48 px-3 py-1.5 rounded-lg border border-gray-200 text-sm"
+                        />
+                        <svg className="absolute right-2 top-2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
 
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center gap-2 mt-4">
+                      <select
+                        value={filters.type}
+                        onChange={(e) => handleFilterChange('type', e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm"
+                      >
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                      </select>
+
+                      <select
+                        value={filters.dateRange}
+                        onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                      </select>
+
+                      <div className="flex items-center gap-1 border-l border-gray-200 pl-3">
                         <button
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 rounded-lg bg-gray-100 disabled:opacity-50"
+                          onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+                          title={`Sort ${filters.sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
                         >
-                          Previous
+                          <svg className={`w-4 h-4 transform transition-transform ${filters.sortOrder === 'desc' ? 'rotate-180' : ''}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                          </svg>
                         </button>
-                        <span className="px-3 py-1">
-                          Page {currentPage} of {totalPages}
-                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mobile Filters */}
+                  <div className={`sm:hidden mt-3 space-y-3 ${showFilters ? 'block' : 'hidden'}`}>
+                    {/* Search Input */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        value={filters.searchQuery}
+                        onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 
+                                 text-base placeholder:text-gray-400
+                                 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <svg className="absolute right-3 top-3.5 h-5 w-5 text-gray-400" 
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+
+                    {/* Filter Controls */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        value={filters.type}
+                        onChange={(e) => handleFilterChange('type', e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 
+                                 bg-white text-base"
+                      >
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                      </select>
+
+                      <select
+                        value={filters.dateRange}
+                        onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 
+                                 bg-white text-base"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                      </select>
+                    </div>
+
+                    {/* Sort Controls */}
+                    <div className="flex items-center justify-between py-2 mt-2">
+                      <span className="text-sm text-gray-600">Sort by:</span>
+                      <div className="flex items-center gap-3">
                         <button
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1 rounded-lg bg-gray-100 disabled:opacity-50"
+                          onClick={() => handleFilterChange('sortBy', 'date')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium
+                            ${filters.sortBy === 'date' 
+                              ? 'bg-indigo-50 text-indigo-600' 
+                              : 'text-gray-600 hover:bg-gray-50'}`}
                         >
-                          Next
+                          Date
                         </button>
+                        <button
+                          onClick={() => handleFilterChange('sortBy', 'amount')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium
+                            ${filters.sortBy === 'amount' 
+                              ? 'bg-indigo-50 text-indigo-600' 
+                              : 'text-gray-600 hover:bg-gray-50'}`}
+                        >
+                          Amount
+                        </button>
+                        <button
+                          onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="p-2 hover:bg-gray-50 rounded-lg"
+                        >
+                          <svg className={`w-5 h-5 transform transition-transform ${
+                            filters.sortOrder === 'desc' ? 'rotate-180' : ''}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                              d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Active Filters */}
+                    {(filters.type !== 'all' || filters.dateRange !== 'all' || filters.searchQuery) && (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+                        {filters.type !== 'all' && (
+                          <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                            {filters.type}
+                          </span>
+                        )}
+                        {filters.dateRange !== 'all' && (
+                          <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                            {filters.dateRange}
+                          </span>
+                        )}
+                        {filters.searchQuery && (
+                          <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                            Search: {filters.searchQuery}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
+
+                {/* Transaction List */}
+                <div className="p-4">
+                  <RecentTransactions
+                    transactions={paginatedTransactions}
+                    isLoading={isLoadingTransactions}
+                  />
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center gap-2 mt-4">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 rounded-lg bg-gray-100 disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <span className="px-3 py-1">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1 rounded-lg bg-gray-100 disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* ...rest of existing code... */}
             </div>
           </div>
         </div>
