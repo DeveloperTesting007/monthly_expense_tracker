@@ -147,12 +147,12 @@ export default function Dashboard() {
         onClose={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Updated max width and padding */}
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto">
-            {/* Mobile Header with Menu Button */}
-            <div className="flex justify-between items-center mb-6">
+          <div className="max-w-6xl mx-auto"> {/* Changed from max-w-3xl to max-w-6xl */}
+            {/* Mobile Header */}
+            <div className="flex justify-between items-center mb-8"> {/* Increased margin bottom */}
               <button
                 className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -168,13 +168,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="mb-6">
+            {/* Summary Cards - Updated grid for larger screens */}
+            <div className="mb-8"> {/* Increased margin bottom */}
               <SummaryCards transactions={transactions} />
             </div>
 
-            {/* Main Content */}
-            <div className="space-y-6">
+            {/* Main Content Area */}
+            <div className="space-y-8"> {/* Increased gap between sections */}
               {error && (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                   <div className="flex">
@@ -210,10 +210,11 @@ export default function Dashboard() {
                 </button>
               )}
 
-              {/* Collapsible Transaction Form */}
-              <div className={`bg-white rounded-lg shadow overflow-hidden transition-all duration-300 ${isTransactionFormOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-4 hidden'
-                }`}>
-                <div className="px-4 py-3 flex justify-between items-center border-b border-gray-200">
+              {/* Transaction Form Card - Wider padding on larger screens */}
+              <div className={`bg-white rounded-xl shadow-sm overflow-hidden 
+                             transition-all duration-300 ${isTransactionFormOpen ? 'opacity-100' : 'opacity-0 hidden'}`}
+              >
+                <div className="px-6 py-4 lg:px-8 flex justify-between items-center border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-800">Add New Transaction</h2>
                   <button
                     onClick={() => setIsTransactionFormOpen(false)}
@@ -225,14 +226,14 @@ export default function Dashboard() {
                     </svg>
                   </button>
                 </div>
-                <div className="p-4">
+                <div className="p-6 lg:p-8">
                   <TransactionForm onSubmit={handleAddTransaction} isLoading={isLoading} />
                 </div>
               </div>
 
-              {/* Collapsible Recent Transactions */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-200">
+              {/* Recent Transactions Card - Wider padding on larger screens */}
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 lg:px-8 border-b border-gray-200">
                   <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
@@ -403,16 +404,13 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-
-                {/* Transaction List */}
-                <div className="p-4">
+                <div className="p-6 lg:p-8">
                   <RecentTransactions
                     transactions={paginatedTransactions}
                     isLoading={isLoadingTransactions}
                   />
                 </div>
-
-                {/* Pagination Controls */}
+                {/* ...existing pagination... */}
                 {totalPages > 1 && (
                   <div className="flex justify-center gap-2 mt-4">
                     <button

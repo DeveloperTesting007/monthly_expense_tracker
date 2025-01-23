@@ -50,7 +50,7 @@ export default function Expenses() {
       setLastDoc(result.lastDoc);
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error('Error fetching transactions:', error);
+      // Remove console.error
     } finally {
       if (isLoadMore) {
         setIsLoadingMore(false);
@@ -66,7 +66,7 @@ export default function Expenses() {
       await addTransaction(currentUser.uid, transaction);
       await fetchTransactions();
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      // Remove console.error
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +83,7 @@ export default function Expenses() {
       await fetchTransactions();
       setEditingTransaction(null);
     } catch (error) {
-      console.error('Error updating transaction:', error);
+      // Remove console.error
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +112,7 @@ export default function Expenses() {
       setDeleteModalOpen(false);
       setDeletingTransaction(null);
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      // Remove console.error
     } finally {
       setIsDeleting(false);
     }
@@ -271,7 +271,7 @@ export default function Expenses() {
         {/* Main Content */}
         <div className="flex-1 lg:ml-64">
           <div className="p-4 sm:p-6 lg:p-8">
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-6xl mx-auto">
               {/* Mobile Header */}
               <div className="flex justify-between items-center mb-6">
                 <button
@@ -290,7 +290,7 @@ export default function Expenses() {
               </div>
 
               {/* Content */}
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {/* New Transaction Form Card */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   {/* Card Header */}
@@ -492,7 +492,8 @@ export default function Expenses() {
                           Try adjusting your filters or add a new transaction
                         </p>
                       </div>
-                    ) : (
+                    ) : 
+                    (
                       <>
                         <div className="space-y-3">
                           {filteredTransactions.map((transaction, index) => 
@@ -501,14 +502,15 @@ export default function Expenses() {
                         </div>
                         
                         {/* Show results count */}
-                        <div className="mt-4 text-center text-sm text-gray-500">
+                        {/* <div className="mt-4 text-center text-sm text-gray-500">
                           Showing {filteredTransactions.length} of {transactions.length} transactions
-                        </div>
+                        </div> */}
                       </>
-                    )}
+                    )
+                    }
 
                     {/* Mobile Load More */}
-                    {!isLoadingTransactions && filteredTransactions.length > 0 && hasMore && (
+                    {/* {!isLoadingTransactions && filteredTransactions.length > 0 && hasMore && (
                       <button
                         onClick={handleLoadMore}
                         disabled={isLoadingMore}
@@ -533,7 +535,7 @@ export default function Expenses() {
                           </>
                         )}
                       </button>
-                    )}
+                    )} */}
                   </div>
 
                   {/* Use filteredTransactions instead of transactions */}
