@@ -71,16 +71,16 @@ export default function Dashboard() {
   }
 
   // Safe array operations with type checking
-  const filteredTransactions = Array.isArray(transactions) 
+  const filteredTransactions = Array.isArray(transactions)
     ? transactions.filter(transaction => {
-        if (filter === 'all') return true;
-        return transaction.type === filter;
-      })
+      if (filter === 'all') return true;
+      return transaction.type === filter;
+    })
     : [];
 
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     if (sortBy === 'date') {
-      return sortOrder === 'desc' 
+      return sortOrder === 'desc'
         ? new Date(b.date).getTime() - new Date(a.date).getTime()
         : new Date(a.date).getTime() - new Date(b.date).getTime();
     }
@@ -97,17 +97,16 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Menu Overlay */}
-      <div 
-        className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${
-          isMobileMenuOpen ? 'block' : 'hidden'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${isMobileMenuOpen ? 'block' : 'hidden'
+          }`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Sidebar */}
-      <Sidebar 
-        isMobileOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
+      <Sidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content */}
@@ -144,7 +143,7 @@ export default function Dashboard() {
                     <div className="flex-1">
                       <p className="text-sm text-yellow-700">{error}</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setError(null)}
                       className="text-yellow-700"
                     >
@@ -169,16 +168,15 @@ export default function Dashboard() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  <span className="hidden sm:inline">Add Transaction</span>
+                  {/* <span className="hidden sm:inline">Add New Transaction</span> */}
                 </button>
               )}
 
               {/* Collapsible Transaction Form */}
-              <div className={`bg-white rounded-lg shadow overflow-hidden transition-all duration-300 ${
-                isTransactionFormOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-4 hidden'
-              }`}>
+              <div className={`bg-white rounded-lg shadow overflow-hidden transition-all duration-300 ${isTransactionFormOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-4 hidden'
+                }`}>
                 <div className="px-4 py-3 flex justify-between items-center border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-800">Add Transaction</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Add New Transaction</h2>
                   <button
                     onClick={() => setIsTransactionFormOpen(false)}
                     className="text-gray-400 hover:text-gray-500"
@@ -202,9 +200,8 @@ export default function Dashboard() {
                 >
                   <h2 className="text-lg font-semibold text-gray-800">Recent Transactions</h2>
                   <svg
-                    className={`w-5 h-5 transform transition-transform ${
-                      isRecentTransactionsOpen ? 'rotate-180' : ''
-                    }`}
+                    className={`w-5 h-5 transform transition-transform ${isRecentTransactionsOpen ? 'rotate-180' : ''
+                      }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -213,9 +210,8 @@ export default function Dashboard() {
                   </svg>
                 </button>
                 <div
-                  className={`transition-all duration-300 ease-in-out ${
-                    isRecentTransactionsOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
-                  } overflow-hidden`}
+                  className={`transition-all duration-300 ease-in-out ${isRecentTransactionsOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                    } overflow-hidden`}
                 >
                   <div className="p-4">
                     {/* Transaction Controls */}
@@ -247,8 +243,8 @@ export default function Dashboard() {
                       </button>
                     </div>
 
-                    <RecentTransactions 
-                      transactions={paginatedTransactions} 
+                    <RecentTransactions
+                      transactions={paginatedTransactions}
                       isLoading={isLoadingTransactions}
                     />
 

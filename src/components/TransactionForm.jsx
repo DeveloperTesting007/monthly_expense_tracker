@@ -24,6 +24,9 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
         description: editData.description,
         date: new Date(editData.date).toISOString().split('T')[0]
       });
+    } else {
+      // Reset form when editData becomes null
+      resetForm();
     }
   }, [editData]);
 
@@ -58,14 +61,7 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
     });
 
     // Reset form
-    setFormData({
-      type: 'expense',
-      category: '',
-      amount: '',
-      description: '',
-      date: new Date().toISOString().split('T')[0]
-    });
-    setErrors({});
+    resetForm();
   };
 
   const handleChange = (e) => {
@@ -76,12 +72,24 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
     }));
   };
 
+  const resetForm = () => {
+    setFormData({
+      type: 'expense',
+      category: '',
+      amount: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0]
+    });
+    setErrors({});
+  };
+
+  const handleCancel = () => {
+    resetForm();
+    onCancel();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h3 className="text-lg font-semibold mb-4">
-        {editData ? 'Edit Transaction' : 'Add New Transaction'}
-      </h3>
-
       {/* Transaction Type Selector */}
       <div className="flex justify-center">
         <div className="inline-flex p-1 bg-gray-100 rounded-xl">
@@ -253,24 +261,64 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
         )}
       </div>
 
-      {/* Submit Button */}
-      <div className="flex justify-end space-x-4 mt-6">
+      {/* Submit Button Section - Updated for better mobile experience */}
+      <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 mt-6">
         {editData && (
           <button
             type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            onClick={handleCancel}
+            className="w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-lg 
+                     font-medium border border-gray-200
+                     text-gray-700 hover:text-gray-900 hover:bg-gray-50 
+                     transition-all duration-200 hover:border-gray-300 hover:shadow-sm
+                     active:bg-gray-100 active:scale-[0.98]
+                     disabled:opacity-50 flex items-center justify-center gap-2"
             disabled={isLoading}
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
             Cancel
           </button>
         )}
         <button
           type="submit"
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          className={`w-full sm:w-auto px-6 py-3 sm:py-2.5 rounded-xl sm:rounded-lg 
+                     text-white font-medium
+                     transition-all duration-200 hover:shadow-md 
+                     active:scale-[0.98] disabled:opacity-50
+                     flex items-center justify-center gap-2
+            ${formData.type === 'income' 
+              ? 'bg-green-600 hover:bg-green-700 active:bg-green-800' 
+              : 'bg-red-600 hover:bg-red-700 active:bg-red-800'}`}
           disabled={isLoading}
         >
-          {isLoading ? 'Saving...' : editData ? 'Update' : 'Add Transaction'}
+          {isLoading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span>{editData ? 'Updating...' : 'Adding...'}</span>
+            </>
+          ) : (
+            <>
+              {editData ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                      d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Update Transaction</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <span>Add Transaction</span>
+                </>
+              )}
+            </>
+          )}
         </button>
       </div>
     </form>
