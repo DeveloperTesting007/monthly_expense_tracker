@@ -17,6 +17,7 @@ import {
 } from 'chart.js';
 import { getAllTransactions } from '../services/transactionService';
 import { format } from 'date-fns';
+import SavingsBreakdown from '../components/SavingsBreakdown';
 
 // Register ChartJS components
 ChartJS.register(
@@ -49,7 +50,7 @@ export default function Reports() {
 
   const fetchTransactions = async () => {
     if (!currentUser) return;
-    
+
     setIsLoading(true);
     try {
       const result = await getAllTransactions(currentUser.uid);
@@ -66,7 +67,7 @@ export default function Reports() {
   // Process monthly data with improved structure
   const processMonthlyData = (transactions) => {
     if (!Array.isArray(transactions)) return { months: [], monthlyIncomes: [], monthlyExpenses: [] };
-    
+
     const monthlyDataMap = transactions.reduce((acc, transaction) => {
       const date = new Date(transaction.date);
       if (date.getFullYear() === selectedYear) {
@@ -74,7 +75,7 @@ export default function Reports() {
         if (!acc[monthKey]) {
           acc[monthKey] = { income: 0, expenses: 0 };
         }
-        
+
         const amount = Number(transaction.amount) || 0;
         if (transaction.type === 'income') {
           acc[monthKey].income += amount;
@@ -108,10 +109,10 @@ export default function Reports() {
   // Update how we handle category data
   const categoryData = React.useMemo(() => {
     if (!Array.isArray(transactions)) return [];
-    
+
     const expensesByCategory = transactions.reduce((acc, transaction) => {
-      if (transaction.type === 'expense' && 
-          new Date(transaction.date).getFullYear() === selectedYear) {
+      if (transaction.type === 'expense' &&
+        new Date(transaction.date).getFullYear() === selectedYear) {
         const category = transaction.category || 'Other';
         acc[category] = (acc[category] || 0) + Number(transaction.amount || 0);
       }
@@ -134,10 +135,10 @@ export default function Reports() {
   // Add income category data processing
   const incomeData = React.useMemo(() => {
     if (!Array.isArray(transactions)) return [];
-    
+
     const incomeByCategory = transactions.reduce((acc, transaction) => {
-      if (transaction.type === 'income' && 
-          new Date(transaction.date).getFullYear() === selectedYear) {
+      if (transaction.type === 'income' &&
+        new Date(transaction.date).getFullYear() === selectedYear) {
         const category = transaction.category || 'Other';
         acc[category] = (acc[category] || 0) + Number(transaction.amount || 0);
       }
@@ -227,7 +228,7 @@ export default function Reports() {
 
   // Calculate summary totals for the selected year
   const yearSummary = React.useMemo(() => {
-    const filteredTransactions = transactions.filter(t => 
+    const filteredTransactions = transactions.filter(t =>
       new Date(t.date).getFullYear() === selectedYear
     );
 
@@ -260,7 +261,7 @@ export default function Reports() {
       if (date.getFullYear() === selectedYear) {
         const month = date.getMonth();
         const amount = Number(transaction.amount) || 0;
-        
+
         if (transaction.type === 'income') {
           incomeByMonth[month] += amount;
         } else if (transaction.type === 'expense') {
@@ -318,7 +319,7 @@ export default function Reports() {
       legend: { position: 'top' },
       tooltip: {
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             return `${context.dataset.label}: $${context.raw.toFixed(2)}`;
           }
         }
@@ -417,7 +418,7 @@ export default function Reports() {
         if (!acc[monthKey]) {
           acc[monthKey] = { income: 0, expenses: 0, net: 0 };
         }
-        
+
         const amount = Number(transaction.amount) || 0;
         if (transaction.type === 'income') {
           acc[monthKey].income += amount;
@@ -430,7 +431,7 @@ export default function Reports() {
     }, {});
 
     // Ensure all months are represented
-    const allMonths = Array.from({ length: 12 }, (_, i) => 
+    const allMonths = Array.from({ length: 12 }, (_, i) =>
       format(new Date(selectedYear, i), 'MMM')
     );
 
@@ -546,7 +547,7 @@ export default function Reports() {
     }
 
     // Get all months for the selected year
-    const monthLabels = Array.from({ length: 12 }, (_, i) => 
+    const monthLabels = Array.from({ length: 12 }, (_, i) =>
       format(new Date(selectedYear, i), 'MMM')
     );
 
@@ -562,7 +563,7 @@ export default function Reports() {
       if (date.getFullYear() === selectedYear) {
         const month = format(date, 'MMM');
         const amount = Number(transaction.amount) || 0;
-        
+
         if (transaction.type === 'income') {
           monthlyData[month].income += amount;
         } else {
@@ -701,23 +702,23 @@ export default function Reports() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Menu Overlay */}
-      <div 
+      <div
         className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-20 transition-opacity duration-300 lg:hidden
           ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      <Sidebar 
-        isMobileOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
+      <Sidebar
+        isMobileOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
 
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {/* Header - Improved responsive layout */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
                 <button
                   className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
                   onClick={() => setIsMobileMenuOpen(true)}
@@ -731,198 +732,106 @@ export default function Reports() {
                   <p className="text-sm lg:text-base text-gray-600">Yearly financial analysis</p>
                 </div>
               </div>
-              
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400"
-              >
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
+
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Summary Stats - Full width cards with better spacing */}
+            <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">Annual Summary</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 sm:p-6 rounded-lg bg-green-50">
+                  <p className="text-sm text-green-600">Total Income</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-700">
+                    ${yearSummary.totalIncome.toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-6 rounded-lg bg-red-50">
+                  <p className="text-sm text-red-600">Total Expenses</p>
+                  <p className="text-xl sm:text-2xl font-bold text-red-700">
+                    ${yearSummary.totalExpenses.toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-6 rounded-lg bg-indigo-50">
+                  <p className="text-sm text-indigo-600">Net Balance</p>
+                  <p className="text-xl sm:text-2xl font-bold text-indigo-700">
+                    ${yearSummary.netBalance.toFixed(2)}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Charts Grid */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Monthly Overview - Updated to Bar Chart */}
-              <div className="bg-white p-4 rounded-lg shadow-lg md:col-span-2">
+            {/* Main Content Grid - Improved responsive layout */}
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+              {/* Monthly Overview - Full width on all screens */}
+              <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-800">Monthly Overview</h3>
-                    <div className="text-sm text-gray-500">
-                      {selectedYear} Summary
-                    </div>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">Average Income</p>
-                      <p className="text-lg font-semibold text-green-600">
-                        ${(monthlyStats.totals.income / 12).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">Average Expenses</p>
-                      <p className="text-lg font-semibold text-red-600">
-                        ${(monthlyStats.totals.expenses / 12).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">Average Net</p>
-                      <p className="text-lg font-semibold text-indigo-600">
-                        ${(monthlyStats.totals.net / 12).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Chart */}
-                  <div className="h-[300px]">
-                    <Bar 
+                  {/* ...existing monthly overview content... */}
+                  <div className="h-[300px] sm:h-[400px]">
+                    <Bar
                       data={monthlyOverviewConfig.data}
                       options={monthlyOverviewConfig.options}
                     />
                   </div>
-
-                  {/* Legend/Help Text */}
-                  <div className="text-xs text-gray-500 mt-2">
-                    <p>• Bars show monthly income and expenses</p>
-                    <p>• Line shows net income trend (income - expenses)</p>
-                  </div>
                 </div>
               </div>
 
-              {/* Cash Balance Trend */}
-              <div className="bg-white p-4 rounded-lg shadow-lg md:col-span-2">
+
+              {/* Cash Balance - Full width on all screens */}
+              <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Cash Balance Trend</h3>
-                <div className="h-[300px]">
-                  <Line 
+                <div className="h-[300px] sm:h-[400px]">
+                  <Line
                     data={balanceChartData}
                     options={balanceChartOptions}
                   />
                 </div>
               </div>
 
-              {/* Income Categories - New Section */}
-              <div className="bg-white p-4 rounded-lg shadow-lg">
+              {/* Category Charts - Side by side on large screens */}
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Income Categories</h3>
-                <div className="h-[300px]">
-                  <Doughnut
-                    data={incomeDoughnutChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'right',
-                          labels: {
-                            boxWidth: 12,
-                            font: {
-                              size: 11
-                            }
-                          }
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: (context) => {
-                              const item = incomeData[context.dataIndex];
-                              return `${item.category}: $${item.amount.toFixed(2)} (${item.percentage}%)`;
-                            }
-                          }
-                        }
+                <div className="h-[300px] sm:h-[350px]">
+                  <Doughnut data={incomeDoughnutChartData} options={{
+                    // ...existing options...
+                    plugins: {
+                      legend: {
+                        position: window.innerWidth < 640 ? 'bottom' : 'right',
+                        // ...rest of legend options
                       }
-                    }}
-                  />
-                </div>
-                {/* Category List */}
-                <div className="mt-4 space-y-2">
-                  {incomeData.map((item, index) => (
-                    <div key={item.category} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: incomeDoughnutChartData.datasets[0].backgroundColor[index] }}
-                        />
-                        <span>{item.category}</span>
-                      </div>
-                      <span className="font-medium">${item.amount.toFixed(2)}</span>
-                    </div>
-                  ))}
+                    }
+                  }} />
                 </div>
               </div>
 
-              {/* Expense Categories - Updated */}
-              <div className="bg-white p-4 rounded-lg shadow-lg">
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Expense Categories</h3>
-                <div className="h-[300px]">
-                  <Doughnut
-                    data={expenseDoughnutChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'right',
-                          labels: {
-                            boxWidth: 12,
-                            font: {
-                              size: 11
-                            }
-                          }
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: (context) => {
-                              const item = categoryData[context.dataIndex];
-                              return `${item.category}: $${item.amount.toFixed(2)} (${item.percentage}%)`;
-                            }
-                          }
-                        }
+                <div className="h-[300px] sm:h-[350px]">
+                  <Doughnut data={expenseDoughnutChartData} options={{
+                    // ...existing options...
+                    plugins: {
+                      legend: {
+                        position: window.innerWidth < 640 ? 'bottom' : 'right',
+                        // ...rest of legend options
                       }
-                    }}
-                  />
-                </div>
-                {/* Category List */}
-                <div className="mt-4 space-y-2">
-                  {categoryData.map((item, index) => (
-                    <div key={item.category} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: expenseDoughnutChartData.datasets[0].backgroundColor[index] }}
-                        />
-                        <span>{item.category}</span>
-                      </div>
-                      <span className="font-medium">${item.amount.toFixed(2)}</span>
-                    </div>
-                  ))}
+                    }
+                  }} />
                 </div>
               </div>
 
-              {/* Summary Stats with Balance */}
-              <div className="bg-white p-4 rounded-lg shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Annual Summary</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-green-50">
-                    <p className="text-sm text-green-600">Total Income</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      ${yearSummary.totalIncome.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-red-50">
-                    <p className="text-sm text-red-600">Total Expenses</p>
-                    <p className="text-2xl font-bold text-red-700">
-                      ${yearSummary.totalExpenses.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="col-span-2 p-4 rounded-lg bg-indigo-50">
-                    <p className="text-sm text-indigo-600">Net Balance</p>
-                    <p className="text-2xl font-bold text-indigo-700">
-                      ${yearSummary.netBalance.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
+              {/* Savings Breakdown - Full width on all screens */}
+              <div className="lg:col-span-2">
+                <SavingsBreakdown netBalance={yearSummary.netBalance} />
               </div>
             </div>
           </div>
