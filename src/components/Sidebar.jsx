@@ -8,11 +8,15 @@ import {
     MdSettings,
     MdChevronLeft,
     MdChevronRight,
-    MdLogout
+    MdLogout,
+    MdCategory,
+    MdExpandMore,
+    MdExpandLess
 } from 'react-icons/md';
 
 export default function Sidebar({ onClose, isMobileOpen }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [expandedMenus, setExpandedMenus] = useState({});
     const { currentUser, logout } = useAuth();
     const location = useLocation();
 
@@ -20,8 +24,27 @@ export default function Sidebar({ onClose, isMobileOpen }) {
         { title: 'Dashboard', path: '/dashboard', icon: <MdDashboard size={24} /> },
         { title: 'Add Transaction', path: '/expenses', icon: <MdAttachMoney size={24} /> },
         { title: 'Reports', path: '/reports', icon: <MdInsertChart size={24} /> },
-        { title: 'Settings', path: '/settings', icon: <MdSettings size={24} /> },
+        { 
+            title: 'Settings',
+            icon: <MdSettings size={24} />,
+            collapsible: true,
+            subItems: [
+                { title: 'Categories', path: '/settings/categories', icon: <MdCategory size={20} /> }
+            ]
+        }
     ];
+
+    const isPathActive = (path) => {
+        if (!path) return false;
+        return location.pathname === path || location.pathname.startsWith(path);
+    };
+
+    const toggleSubmenu = (path) => {
+        setExpandedMenus(prev => ({
+            ...prev,
+            [path]: !prev[path]
+        }));
+    };
 
     // Handle escape key for mobile
     useEffect(() => {
@@ -117,26 +140,73 @@ export default function Sidebar({ onClose, isMobileOpen }) {
                     {/* Navigation */}
                     <nav className="flex-1 space-y-1 mt-2">
                         {navItems.map((item) => {
-                            const isActive = location.pathname === item.path;
+                            const isActive = item.path ? isPathActive(item.path) : 
+                                           item.subItems?.some(sub => isPathActive(sub.path));
+                            const isExpanded = expandedMenus[item.title];
+                            
                             return (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    onClick={() => onClose()}
-                                    className={`flex items-center rounded-lg transition-all duration-200
-                    ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3 gap-3'}
-                    ${isActive
-                                            ? 'bg-indigo-600 text-white shadow-md'
-                                            : 'hover:bg-gray-800/50 text-gray-400 hover:text-white'}`}
-                                >
-                                    <span className="flex-shrink-0">{item.icon}</span>
-                                    {!isCollapsed && (
-                                        <span className="font-medium truncate">{item.title}</span>
+                                <div key={item.title}>
+                                    {item.path ? (
+                                        // Regular menu item with direct path
+                                        <Link
+                                            to={item.path}
+                                            onClick={() => onClose()}
+                                            className={`flex items-center rounded-lg transition-all duration-200
+                                                ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3 gap-3'}
+                                                ${isActive
+                                                    ? 'bg-indigo-600 text-white shadow-md'
+                                                    : 'hover:bg-gray-800/50 text-gray-400 hover:text-white'}`}
+                                        >
+                                            <span className="flex-shrink-0">{item.icon}</span>
+                                            {!isCollapsed && <span className="font-medium truncate">{item.title}</span>}
+                                        </Link>
+                                    ) : (
+                                        // Collapsible menu item
+                                        <>
+                                            <div
+                                                onClick={() => !isCollapsed && toggleSubmenu(item.title)}
+                                                className={`flex items-center rounded-lg transition-all duration-200 cursor-pointer
+                                                    ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3 gap-3'}
+                                                    ${isActive
+                                                        ? 'bg-indigo-600 text-white shadow-md'
+                                                        : 'hover:bg-gray-800/50 text-gray-400 hover:text-white'}`}
+                                            >
+                                                <span className="flex-shrink-0">{item.icon}</span>
+                                                {!isCollapsed && (
+                                                    <>
+                                                        <span className="font-medium truncate flex-1">{item.title}</span>
+                                                        {item.collapsible && (
+                                                            <span className="text-gray-400">
+                                                                {isExpanded ? <MdExpandLess size={20} /> : <MdExpandMore size={20} />}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-items */}
+                                            {!isCollapsed && item.subItems && (
+                                                <div className={`mt-2 space-y-1 overflow-hidden transition-all duration-200
+                                                    ${isExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                                    {item.subItems.map((subItem) => (
+                                                        <Link
+                                                            key={subItem.path}
+                                                            to={subItem.path}
+                                                            onClick={() => onClose()}
+                                                            className={`flex items-center pl-12 pr-4 py-2 rounded-lg transition-all duration-200 gap-3
+                                                                ${isPathActive(subItem.path)
+                                                                    ? 'bg-indigo-600/50 text-white'
+                                                                    : 'text-gray-400 hover:bg-gray-800/30 hover:text-white'}`}
+                                                        >
+                                                            {subItem.icon}
+                                                            <span className="font-medium text-sm">{subItem.title}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                    {!isCollapsed && isActive && (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-white ml-auto"></div>
-                                    )}
-                                </Link>
+                                </div>
                             );
                         })}
                     </nav>

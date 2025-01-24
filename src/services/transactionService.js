@@ -1,39 +1,24 @@
 import { db } from '../config/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs, where, doc, updateDoc, serverTimestamp, deleteDoc, startAfter, Timestamp } from 'firebase/firestore';
-
-export const categories = {
-    expense: [
-        'Food & Dining',
-        'Transportation',
-        'Shopping',
-        'Entertainment',
-        'Healthcare',
-        'Utilities',
-        'Rent',
-        'Education',
-        'Travel',
-        'Other'
-    ],
-    income: [
-        'Salary',
-        'Freelance',
-        'Investments',
-        'Rental Income',
-        'Business',
-        'Gift',
-        'Other'
-    ]
-};
+import { getCategories } from './categoryService';
 
 export const addTransaction = async (userId, transactionData) => {
     if (!userId) throw new Error('User ID is required');
 
     try {
+        // Verify that the category exists
+        const categories = await getCategories(userId, transactionData.type);
+        const categoryExists = categories.some(cat => cat.id === transactionData.categoryId);
+        
+        if (!categoryExists) {
+            throw new Error('Invalid category');
+        }
+
         const transaction = {
             ...transactionData,
             userId,
             createdAt: Date.now(),
-            date: new Date(transactionData.date).toISOString(), // Convert to ISO string
+            date: new Date(transactionData.date).toISOString(),
             amount: Number(transactionData.amount)
         };
 
@@ -41,7 +26,7 @@ export const addTransaction = async (userId, transactionData) => {
         return { id: docRef.id, ...transaction };
     } catch (error) {
         console.error('Add transaction error:', error);
-        throw new Error('Failed to add transaction');
+        throw new Error('Failed to add transaction: ' + error.message);
     }
 };
 

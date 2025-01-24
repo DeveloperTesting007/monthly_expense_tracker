@@ -95,22 +95,35 @@ export function AuthProvider({ children }) {
         try {
             const result = await signInWithPopup(auth, new GoogleAuthProvider());
 
-            // Create/update user document in Firestore
-            await setDoc(doc(db, 'users', result.user.uid), {
-                name: result.user.displayName,
-                email: result.user.email,
+            // Prepare user data
+            const userData = {
+                name: result.user.displayName || '',
+                email: result.user.email || '',
                 phone: result.user.phoneNumber || '',
-                createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp(),
-                photoURL: result.user.photoURL
-            }, { merge: true });
+                photoURL: result.user.photoURL || '',
+                lastLogin: serverTimestamp()
+            };
+
+            // Only add createdAt if it's a new user
+            const userDocRef = doc(db, 'users', result.user.uid);
+            try {
+                await setDoc(userDocRef, {
+                    ...userData,
+                    createdAt: serverTimestamp()
+                }, { merge: true });
+            } catch (firestoreError) {
+                console.error('Firestore error:', firestoreError);
+                showMessage('Error updating user profile', 'error');
+                // Continue execution as auth was successful
+            }
 
             showMessage('Signed in with Google successfully!', 'success');
             return result;
         } catch (error) {
             const message =
                 error.code === 'auth/popup-closed-by-user' ? 'Sign in cancelled' :
-                    'Failed to sign in with Google';
+                error.code === 'auth/network-request-failed' ? 'Network error. Please check your connection.' :
+                'Failed to sign in with Google';
             showMessage(message, 'error');
             throw error;
         }

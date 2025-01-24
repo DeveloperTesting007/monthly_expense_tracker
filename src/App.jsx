@@ -8,7 +8,8 @@ import Dashboard from './pages/Dashboard.jsx';
 import PrivateRoute from './routes/PrivateRoute.jsx';
 import AddTransaction from './pages/AddTransaction.jsx';
 import Reports from './pages/Reports.jsx';
-
+import Categories from './pages/Categories';
+import CategorySettings from './components/CategorySettings';
 
 function App() {
   return (
@@ -37,7 +38,11 @@ function App() {
                   <Reports />
                 </PrivateRoute>
               } />
-
+              <Route path="/settings/categories" element={
+                <PrivateRoute>
+                  <Categories />
+                </PrivateRoute>
+              } />
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
