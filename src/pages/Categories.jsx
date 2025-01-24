@@ -9,9 +9,9 @@ export default function Categories() {
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-            <Sidebar 
-                isMobileOpen={isMobileOpen} 
-                onClose={() => setIsMobileOpen(false)} 
+            <Sidebar
+                isMobileOpen={isMobileOpen}
+                onClose={() => setIsMobileOpen(false)}
             />
 
             {/* Main Content Area */}
@@ -55,15 +55,7 @@ export default function Categories() {
                         <div className="space-y-6">
                             {/* Form Section */}
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <h2 className="text-lg font-semibold text-gray-900">
-                                            Add New Category
-                                        </h2>
-                                        <MdSettings className="text-gray-400" size={20} />
-                                    </div>
-                                    <CategorySettings showOnlyForm={true} />
-                                </div>
+                                <CategorySettings showOnlyForm={true} />
                             </div>
 
                             {/* List Section */}
