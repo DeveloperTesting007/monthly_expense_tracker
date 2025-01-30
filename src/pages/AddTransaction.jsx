@@ -25,9 +25,13 @@ export default function Expenses() {
     type: 'all',
     category: 'all',
     dateRange: 'all',
-    searchQuery: ''
+    searchQuery: '',
+    sortBy: 'date',
+    sortOrder: 'desc',
+    status: 'all'
   });
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -126,27 +130,57 @@ export default function Expenses() {
     setFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    if (filters.type !== 'all' && transaction.type !== filters.type) return false;
-    if (filters.category !== 'all' && transaction.category !== filters.category) return false;
-    if (filters.searchQuery && !transaction.description.toLowerCase().includes(filters.searchQuery.toLowerCase())) return false;
+  const filteredTransactions = useMemo(() => {
+    if (!Array.isArray(transactions)) return [];
 
-    if (filters.dateRange !== 'all') {
-      const today = new Date();
-      const transactionDate = new Date(transaction.date);
-      const diffTime = Math.abs(today - transactionDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      switch (filters.dateRange) {
-        case 'week': return diffDays <= 7;
-        case 'month': return diffDays <= 30;
-        case 'year': return diffDays <= 365;
-        default: return true;
+    return [...transactions].filter(transaction => {
+      // Type filter
+      if (filters.type !== 'all' && transaction.type !== filters.type) return false;
+      
+      // Category filter
+      if (filters.category !== 'all' && transaction.category !== filters.category) return false;
+      
+      // Search filter
+      if (filters.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        const matchesSearch = 
+          transaction.description?.toLowerCase().includes(searchLower) ||
+          transaction.category?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
       }
-    }
 
-    return true;
-  });
+      // Date range filter
+      if (filters.dateRange !== 'all') {
+        const transactionDate = new Date(transaction.date);
+        const today = new Date();
+        const diffTime = Math.abs(today - transactionDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        switch (filters.dateRange) {
+          case 'today': return diffDays <= 1;
+          case 'week': return diffDays <= 7;
+          case 'month': return diffDays <= 30;
+          case 'year': return diffDays <= 365;
+          default: return true;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => {
+      const direction = filters.sortOrder === 'desc' ? -1 : 1;
+      
+      switch (filters.sortBy) {
+        case 'date':
+          return (new Date(a.date) - new Date(b.date)) * direction;
+        case 'amount':
+          return (a.amount - b.amount) * direction;
+        case 'category':
+          return a.category.localeCompare(b.category) * direction;
+        default:
+          return 0;
+      }
+    });
+  }, [transactions, filters]);
 
   const categories = useMemo(() => {
     const uniqueCategories = [...new Set(transactions.map(t => t.categoryName || t.category))];
@@ -170,6 +204,10 @@ export default function Expenses() {
 
   const getCategoryName = (transaction) => {
     return transaction.categoryName || 'Unknown Category';
+  };
+
+  const getFormattedType = (type) => {
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   };
 
   const renderMobileTransactionCard = (transaction, index) => {
@@ -268,7 +306,7 @@ export default function Expenses() {
           ${transaction.type === 'income'
             ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800'}`}>
-          {transaction.type}
+          {getFormattedType(transaction.type)}
         </span>
       </td>
       <td className="px-4 py-3">{getCategoryName(transaction)}</td>
@@ -300,6 +338,176 @@ export default function Expenses() {
         </div>
       </td>
     </tr>
+  );
+
+  const renderFilters = () => (
+    <div className="border-b border-gray-200">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">Transactions</h3>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="sm:hidden p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              aria-label="Toggle filters"
+            >
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Desktop Filters */}
+          <div className="hidden sm:flex items-center gap-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                value={filters.searchQuery}
+                onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+                className="w-full sm:w-64 px-4 py-2 pr-8 border border-gray-200 rounded-lg text-sm"
+              />
+              <svg className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            <select
+              value={filters.type}
+              onChange={(e) => handleFilterChange('type', e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="all">All Types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+
+            <select
+              value={filters.dateRange}
+              onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+
+            <select
+              value={filters.sortBy}
+              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="date">Sort by Date</option>
+              <option value="amount">Sort by Amount</option>
+              <option value="category">Sort by Category</option>
+            </select>
+
+            <button
+              onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <svg className={`w-5 h-5 transform transition-transform ${filters.sortOrder === 'desc' ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Filters */}
+        <div className={`sm:hidden mt-4 space-y-4 ${showFilters ? 'block' : 'hidden'}`}>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={filters.searchQuery}
+              onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+              className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg"
+            />
+            <svg className="absolute right-3 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <select
+              value={filters.type}
+              onChange={(e) => handleFilterChange('type', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg"
+            >
+              <option value="all">All Types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
+            </select>
+
+            <select
+              value={filters.dateRange}
+              onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm text-gray-600">Sort by:</span>
+            <div className="flex items-center gap-3">
+              {['date', 'amount', 'category'].map((sortType) => (
+                <button
+                  key={sortType}
+                  onClick={() => handleFilterChange('sortBy', sortType)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium
+                    ${filters.sortBy === sortType 
+                    ? 'bg-indigo-50 text-indigo-600' 
+                    : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  {sortType.charAt(0).toUpperCase() + sortType.slice(1)}
+                </button>
+              ))}
+              <button
+                onClick={() => handleFilterChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="p-2 hover:bg-gray-50 rounded-lg"
+              >
+                <svg className={`w-5 h-5 transform transition-transform ${
+                  filters.sortOrder === 'desc' ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Active Filters */}
+          {(filters.type !== 'all' || filters.dateRange !== 'all' || filters.searchQuery) && (
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+              {filters.type !== 'all' && (
+                <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                  {getFormattedType(filters.type)}
+                </span>
+              )}
+              {filters.dateRange !== 'all' && (
+                <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                  {filters.dateRange}
+                </span>
+              )}
+              {filters.searchQuery && (
+                <span className="px-2 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                  Search: {filters.searchQuery}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -400,8 +608,7 @@ export default function Expenses() {
 
                 {/* Transactions List */}
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                  {/* ...existing transaction list header and filters... */}
-
+                  {renderFilters()}
                   {/* Mobile Transaction List */}
                   <div className="sm:hidden space-y-4 p-4">
                     {isLoadingTransactions ? (
@@ -424,7 +631,74 @@ export default function Expenses() {
 
                   {/* Desktop Transaction List */}
                   <div className="hidden sm:block overflow-x-auto">
-                    {/* ...existing desktop table... */}
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No.</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                          <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {isLoadingTransactions ? (
+                          <tr>
+                            <td colSpan="7" className="px-4 py-12">
+                              <div className="flex items-center justify-center">
+                                <div className="inline-flex items-center space-x-2">
+                                  <div className="w-4 h-4 border-2 border-t-indigo-600 border-indigo-200 rounded-full animate-spin" />
+                                  <span className="text-sm text-gray-500">Loading transactions...</span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : filteredTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="px-4 py-12">
+                              <div className="text-center">
+                                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
+                                  <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                  </svg>
+                                </div>
+                                <h3 className="mt-4 text-sm font-semibold text-gray-900">No transactions found</h3>
+                                <p className="mt-2 text-sm text-gray-500">Get started by adding your first transaction.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          <>
+                            {filteredTransactions.map((transaction, index) =>
+                              renderTransactionRow(transaction, index)
+                            )}
+                            {hasMore && (
+                              <tr>
+                                <td colSpan="7" className="px-4 py-4">
+                                  <button
+                                    onClick={handleLoadMore}
+                                    disabled={isLoadingMore}
+                                    className="w-full py-2 flex items-center justify-center text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  >
+                                    {isLoadingMore ? (
+                                      <div className="inline-flex items-center space-x-2">
+                                        <div className="w-4 h-4 border-2 border-t-indigo-600 border-indigo-200 rounded-full animate-spin" />
+                                        <span>Loading more...</span>
+                                      </div>
+                                    ) : (
+                                      'Load more transactions'
+                                    )}
+                                  </button>
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
