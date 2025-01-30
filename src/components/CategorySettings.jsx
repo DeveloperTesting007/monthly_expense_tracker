@@ -23,6 +23,11 @@ const ERROR_MESSAGES = {
     NETWORK_ERROR: 'Network error. Please check your connection',
 };
 
+// Add this utility function near the top with other constants
+const toTitleCase = (str) => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 // Updated Add Category Form
 const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
     const [formData, setFormData] = useState({
@@ -71,10 +76,10 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
                     <p className="mt-1 text-sm text-gray-500">Create a new category for your transactions</p>
                 </div>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
+                    <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
                             Type <span className="text-red-500">*</span>
                         </label>
@@ -90,7 +95,7 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
                             <option value="income">Income</option>
                         </select>
                     </div>
-                    
+
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
                             Category Name <span className="text-red-500">*</span>
@@ -143,7 +148,7 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
                     </div>
                 </div>
 
-                <div className="flex justify-end pt-6">
+                <div className="flex justify-center pt-6">
                     <button
                         type="submit"
                         disabled={disabled || isSubmitting || !isNameValid}
@@ -156,11 +161,11 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
                     >
                         {isSubmitting ? (
                             <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                                     fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" 
+                                    <circle className="opacity-25" cx="12" cy="12" r="10"
                                         stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" 
+                                    <path className="opacity-75" fill="currentColor"
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
                                 Creating Category...
@@ -213,11 +218,11 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
     // Load categories with error handling
     const loadCategories = useCallback(async () => {
         if (!currentUser) return;
-        
+
         try {
             setState(prev => ({ ...prev, isLoading: true }));
             const categoriesData = await getCategories();
-            
+
             // Convert categories object to array
             const categoriesArray = Object.entries(categoriesData).reduce((acc, [type, categories]) => {
                 return [...acc, ...categories.map(cat => ({
@@ -226,10 +231,10 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
                 }))];
             }, []);
 
-            setState(prev => ({ 
-                ...prev, 
+            setState(prev => ({
+                ...prev,
                 categories: categoriesArray,
-                isLoading: false 
+                isLoading: false
             }));
             setError(null);
         } catch (error) {
@@ -268,7 +273,7 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
     // Enhanced submission handler
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (formState.editingCategory) {
             await handleUpdate(e);
         } else {
@@ -304,7 +309,7 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
 
         // Check if category name already exists
         const nameExists = state.categories.some(
-            cat => cat.name.toLowerCase() === categoryData.name.trim().toLowerCase()
+            cat => cat.name.toLowerCase() === categoryData.name.trim().toLowerCase() && cat.type.toLowerCase() === categoryData.type.trim().toLowerCase()
         );
         if (nameExists) {
             showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
@@ -377,8 +382,8 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
 
         // Check if updated name conflicts with existing categories
         const nameExists = state.categories.some(
-            cat => cat.id !== editingCategory.id && 
-                  cat.name.toLowerCase() === editingCategory.name.trim().toLowerCase()
+            cat => cat.id !== editingCategory.id &&
+                cat.name.toLowerCase() === editingCategory.name.trim().toLowerCase()
         );
         if (nameExists) {
             showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
@@ -412,7 +417,7 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
         const isConfirmed = window.confirm(
             `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`
         );
-        
+
         if (!isConfirmed) return;
 
         setState(prev => ({ ...prev, isLoading: true }));
@@ -448,7 +453,7 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
         try {
             validateCategory(categoryData);
             setState(prev => ({ ...prev, isSubmitting: true }));
-            
+
             switch (action) {
                 case 'add':
                     await addCategory(currentUser.uid, categoryData);
@@ -551,125 +556,172 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
     );
 
     const CategoryTable = () => (
-        <div className="overflow-x-auto">
-            <div className="divide-y divide-gray-200">
-                {/* Filters Header */}
-                <div className="p-4 bg-gray-50 border-b border-gray-200">
-                    <div className="flex flex-wrap items-center gap-4 justify-between">
-                        <div className="flex items-center gap-4">
-                            <select
-                                value={state.filter}
-                                onChange={(e) => handleFilterChange('filter', e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg"
-                            >
-                                <option value="all">All Categories</option>
-                                <option value="expense">Expenses</option>
-                                <option value="income">Income</option>
-                            </select>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search categories..."
-                                    value={state.searchTerm}
-                                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                                    className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg"
-                                />
-                                <MdFilterList className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+        <div className="overflow-hidden">
+            {/* Filters Header */}
+            <div className="p-4 bg-gray-50 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Search and Filter Group */}
+                    <div className="flex-1 flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-1 max-w-xs">
+                            <input
+                                type="text"
+                                placeholder="Search categories..."
+                                value={state.searchTerm}
+                                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                                className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg 
+                                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                            <MdFilterList className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        </div>
+                        <select
+                            value={state.filter}
+                            onChange={(e) => handleFilterChange('filter', e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg 
+                                focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                            <option value="all">All Categories</option>
+                            <option value="expense">Expenses</option>
+                            <option value="income">Income</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile List View */}
+            <div className="block sm:hidden">
+                {filteredCategories.map((category, index) => (
+                    <div
+                        key={category.id}
+                        className="border-b border-gray-200 hover:bg-gray-50"
+                    >
+                        <div className="p-4 space-y-2">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <span className="text-gray-500 text-sm">#{index + 1}</span>
+                                    <h3 className="text-base font-medium text-gray-900">{category.name}</h3>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleEdit(category)}
+                                        disabled={state.isLoading || formState.editingCategory !== null}
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full"
+                                    >
+                                        <MdEdit size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(category.id, category.name)}
+                                        disabled={state.isLoading || formState.editingCategory !== null}
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-full"
+                                    >
+                                        <MdDelete size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                    ${category.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                >
+                                    {toTitleCase(category.type)}
+                                </span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                    ${category.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
+                                >
+                                    {toTitleCase(category.status)}
+                                </span>
+                                <span className="text-gray-500">
+                                    {new Date(category.createdAt).toLocaleDateString()}
+                                </span>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                {/* Table View */}
-                <div className="overflow-x-auto">
-                    {state.isLoading ? (
-                        <LoadingSpinner />
-                    ) : (
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredCategories.map((category, index) => (
-                                    <tr key={category.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-500 w-16">
-                                                {index + 1}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">{category.name}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                ${category.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                                            >
-                                                {category.type}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                ${category.status === 'active' 
-                                                    ? 'bg-blue-100 text-blue-800' 
-                                                    : 'bg-gray-100 text-gray-800'}`}
-                                            >
-                                                {category.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(category.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center justify-center space-x-3">
-                                                <button
-                                                    onClick={() => handleEdit(category)}
-                                                    disabled={state.isLoading || formState.editingCategory !== null}
-                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full 
-                                                        transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={formState.editingCategory ? "Finish current edit first" : "Edit Category"}
-                                                >
-                                                    <MdEdit size={20} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(category.id, category.name)}
-                                                    disabled={state.isLoading || formState.editingCategory !== null}
-                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-full 
-                                                        transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={formState.editingCategory ? "Finish current edit first" : "Delete Category"}
-                                                >
-                                                    <MdDelete size={20} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-
-                    {/* Empty State */}
-                    {!state.isLoading && filteredCategories.length === 0 && (
-                        <div className="text-center py-12">
-                            <div className="text-gray-400 mb-4">
-                                <MdFilterList size={48} className="mx-auto" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                            <p className="text-gray-500">
-                                {state.searchTerm
-                                    ? 'Try adjusting your search or filter criteria'
-                                    : 'Add your first category using the form above'}
-                            </p>
-                        </div>
-                    )}
-                </div>
+                ))}
             </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredCategories.map((category, index) => (
+                            <tr key={category.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-gray-500 w-16">
+                                        {index + 1}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="text-sm font-medium text-gray-900">{category.name}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        ${category.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                    >
+                                        {toTitleCase(category.type)}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        ${category.status === 'active'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : 'bg-gray-100 text-gray-800'}`}
+                                    >
+                                        {toTitleCase(category.status)}
+                                    </span>
+                                </td>
+
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center justify-center space-x-3">
+                                        <button
+                                            onClick={() => handleEdit(category)}
+                                            disabled={state.isLoading || formState.editingCategory !== null}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full 
+                                                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title={formState.editingCategory ? "Finish current edit first" : "Edit Category"}
+                                        >
+                                            <MdEdit size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(category.id, category.name)}
+                                            disabled={state.isLoading || formState.editingCategory !== null}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-full 
+                                                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title={formState.editingCategory ? "Finish current edit first" : "Delete Category"}
+                                        >
+                                            <MdDelete size={20} />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Empty State - Update for better mobile display */}
+            {!state.isLoading && filteredCategories.length === 0 && (
+                <div className="text-center py-12 px-4">
+                    <div className="text-gray-400 mb-4">
+                        <MdFilterList size={48} className="mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+                    <p className="text-gray-500 text-sm">
+                        {state.searchTerm
+                            ? 'Try adjusting your search or filter criteria'
+                            : 'Add your first category using the form above'}
+                    </p>
+                </div>
+            )}
+
+            {/* Loading State */}
+            {state.isLoading && <LoadingSpinner />}
         </div>
     );
 
