@@ -727,6 +727,7 @@ export default function Reports() {
         className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-20 transition-opacity duration-300 lg:hidden
           ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setIsMobileMenuOpen(false)}
+        aria-hidden="true"
       />
 
       <Sidebar
@@ -737,104 +738,143 @@ export default function Reports() {
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Header - Improved responsive layout */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-lg shadow-sm">
-              <div className="flex items-center gap-4 w-full sm:w-auto">
-                <button
-                  className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-                  onClick={() => setIsMobileMenuOpen(true)}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <div>
-                  <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Financial Reports</h1>
-                  <p className="text-sm lg:text-base text-gray-600">Yearly financial analysis</p>
+            {/* Updated Header with sticky positioning */}
+            <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm mb-6">
+              <div className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <button
+                    className="lg:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    aria-label="Open menu"
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                      Financial Reports
+                    </h1>
+                    <p className="text-sm text-gray-600 hidden sm:block">
+                      Yearly financial analysis
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4 w-full sm:w-auto">
+                {/* Year Selector - Improved mobile styling */}
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400"
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 
+                           focus:ring-indigo-500 focus:border-transparent bg-white shadow-sm
+                           hover:bg-gray-50 transition-colors"
+                  aria-label="Select year"
                 >
                   {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
                     <option key={year} value={year}>{year}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Mobile Subheader */}
+              <div className="sm:hidden -mt-2 pb-4">
+                <p className="text-sm text-gray-600">Yearly financial analysis</p>
+              </div>
             </div>
-            
-            {/* Summary Stats - Full width cards with better spacing */}
-            <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Annual Summary</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 sm:p-6 rounded-lg bg-green-50">
-                  <p className="text-sm text-green-600">Total Income</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-700">
-                    ${yearSummary.totalIncome.toFixed(2)}
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6 rounded-lg bg-red-50">
-                  <p className="text-sm text-red-600">Total Expenses</p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-700">
-                    ${yearSummary.totalExpenses.toFixed(2)}
-                  </p>
-                </div>
-                <div className="p-4 sm:p-6 rounded-lg bg-indigo-50">
-                  <p className="text-sm text-indigo-600">Net Balance</p>
-                  <p className="text-xl sm:text-2xl font-bold text-indigo-700">
-                    ${yearSummary.netBalance.toFixed(2)}
-                  </p>
+
+            {/* Summary Stats - Improved mobile layout */}
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Annual Summary</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-green-50">
+                    <p className="text-sm text-green-600 mb-1">Total Income</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      ${yearSummary.totalIncome.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-red-50">
+                    <p className="text-sm text-red-600 mb-1">Total Expenses</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      ${yearSummary.totalExpenses.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-indigo-50">
+                    <p className="text-sm text-indigo-600 mb-1">Net Balance</p>
+                    <p className="text-2xl font-bold text-indigo-700">
+                      ${yearSummary.netBalance.toFixed(2)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Main Content Grid - Improved responsive layout */}
+            {/* Charts Grid - Improved responsive layout */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-              {/* Monthly Overview - Full width on all screens */}
-              <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-                <div className="flex flex-col gap-4">
-                  {/* ...existing monthly overview content... */}
+              {/* Monthly Overview */}
+              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Overview</h3>
                   <div className="h-[300px] sm:h-[400px]">
                     <Bar
                       data={monthlyOverviewConfig.data}
-                      options={monthlyOverviewConfig.options}
+                      options={{
+                        ...monthlyOverviewConfig.options,
+                        plugins: {
+                          ...monthlyOverviewConfig.options.plugins,
+                          legend: {
+                            ...monthlyOverviewConfig.options.plugins.legend,
+                            position: window.innerWidth < 640 ? 'bottom' : 'top'
+                          }
+                        }
+                      }}
                     />
                   </div>
                 </div>
               </div>
 
-
-              {/* Cash Balance - Full width on all screens */}
-              <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Cash Balance Trend</h3>
-                <div className="h-[300px] sm:h-[400px]">
-                  <Line
-                    data={balanceChartData}
-                    options={balanceChartOptions}
-                  />
+              {/* Cash Balance Trend */}
+              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Cash Balance Trend</h3>
+                  <div className="h-[300px] sm:h-[400px]">
+                    <Line
+                      data={balanceChartData}
+                      options={{
+                        ...balanceChartOptions,
+                        plugins: {
+                          ...balanceChartOptions.plugins,
+                          legend: {
+                            ...balanceChartOptions.plugins.legend,
+                            position: window.innerWidth < 640 ? 'bottom' : 'top'
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Category Charts - Side by side on large screens */}
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Income Categories</h3>
-                <div className="h-[300px] sm:h-[350px]">
-                  <Doughnut data={incomeDoughnutChartData} options={doughnutChartOptions} />
+              {/* Category Distribution Charts */}
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Income Categories</h3>
+                  <div className="h-[300px] sm:h-[350px]">
+                    <Doughnut data={incomeDoughnutChartData} options={doughnutChartOptions} />
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-                <h3 className="text-lg font-semibold mb-4">Expense Categories</h3>
-                <div className="h-[300px] sm:h-[350px]">
-                  <Doughnut data={expenseDoughnutChartData} options={doughnutChartOptions} />
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Expense Categories</h3>
+                  <div className="h-[300px] sm:h-[350px]">
+                    <Doughnut data={expenseDoughnutChartData} options={doughnutChartOptions} />
+                  </div>
                 </div>
               </div>
 
-              {/* Savings Breakdown - Full width on all screens */}
+              {/* Savings Breakdown */}
               <div className="lg:col-span-2">
                 <SavingsBreakdown netBalance={yearSummary.netBalance} />
               </div>
