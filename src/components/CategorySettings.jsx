@@ -70,14 +70,7 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
 
     return (
         <div className="bg-white">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Add New Category</h2>
-                    <p className="mt-1 text-sm text-gray-500">Create a new category for your transactions</p>
-                </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
@@ -194,6 +187,7 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
         isSubmitting: false,
         filter: 'all',
         searchTerm: '',
+        showMobileFilters: false,
     });
 
     const [formState, setFormState] = useState({
@@ -557,84 +551,128 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
 
     const CategoryTable = () => (
         <div className="overflow-hidden">
-            {/* Filters Header */}
-            <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Search and Filter Group */}
-                    <div className="flex-1 flex flex-col sm:flex-row gap-4">
-                        <div className="relative flex-1 max-w-xs">
+            {/* Mobile Filters */}
+            <div className="p-4 border-b border-gray-200">
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800">List of Categories</h3>
+                        <button
+                            onClick={() => setState(prev => ({ ...prev, showMobileFilters: !prev.showMobileFilters }))}
+                            className="sm:hidden p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                            <MdFilterList className="w-5 h-5 text-gray-600" />
+                        </button>
+                    </div>
+
+                    {/* Mobile Filter Panel */}
+                    <div className={`sm:hidden space-y-4 ${state.showMobileFilters ? 'block' : 'hidden'}`}>
+                        <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Search categories..."
                                 value={state.searchTerm}
                                 onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                                className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg 
-                                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg
+                                         text-base placeholder:text-gray-400
+                                         focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
-                            <MdFilterList className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <MdFilterList className="absolute right-3 top-3.5 w-5 h-5 text-gray-400" />
                         </div>
+
                         <select
                             value={state.filter}
                             onChange={(e) => handleFilterChange('filter', e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg 
-                                focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg 
+                                     bg-white text-base"
                         >
                             <option value="all">All Categories</option>
                             <option value="expense">Expenses</option>
                             <option value="income">Income</option>
                         </select>
+
+                        {/* Active Filters */}
+                        {(state.filter !== 'all' || state.searchTerm) && (
+                            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+                                {state.filter !== 'all' && (
+                                    <span className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                                        {toTitleCase(state.filter)}
+                                    </span>
+                                )}
+                                {state.searchTerm && (
+                                    <span className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
+                                        Search: {state.searchTerm}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Mobile List View */}
+            {/* Mobile Category List */}
             <div className="block sm:hidden">
-                {filteredCategories.map((category, index) => (
-                    <div
-                        key={category.id}
-                        className="border-b border-gray-200 hover:bg-gray-50"
-                    >
-                        <div className="p-4 space-y-2">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <span className="text-gray-500 text-sm">#{index + 1}</span>
-                                    <h3 className="text-base font-medium text-gray-900">{category.name}</h3>
+                {state.isLoading ? (
+                    <LoadingSpinner />
+                ) : filteredCategories.length === 0 ? (
+                    <div className="text-center py-12 px-4">
+                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                            <MdFilterList className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <h3 className="mt-4 text-sm font-medium text-gray-900">No categories found</h3>
+                        <p className="mt-2 text-sm text-gray-500">
+                            {state.searchTerm ? 'Try adjusting your search or filters' : 'Add your first category'}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-gray-200">
+                        {filteredCategories.map((category, index) => (
+                            <div key={category.id} className="p-4 hover:bg-gray-50">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm text-gray-500">#{index + 1}</span>
+                                        <h4 className="font-medium text-gray-900">{category.name}</h4>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => handleEdit(category)}
+                                            disabled={state.isLoading || formState.editingCategory}
+                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg 
+                                                     transition-colors disabled:opacity-50"
+                                            aria-label="Edit category"
+                                        >
+                                            <MdEdit size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(category.id, category.name)}
+                                            disabled={state.isLoading || formState.editingCategory}
+                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg 
+                                                     transition-colors disabled:opacity-50"
+                                            aria-label="Delete category"
+                                        >
+                                            <MdDelete size={18} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => handleEdit(category)}
-                                        disabled={state.isLoading || formState.editingCategory !== null}
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full"
+                                    <span className={`px-2 py-1 text-xs font-medium rounded-lg
+                                        ${category.type === 'income' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'}`}
                                     >
-                                        <MdEdit size={18} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(category.id, category.name)}
-                                        disabled={state.isLoading || formState.editingCategory !== null}
-                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-full"
+                                        {toTitleCase(category.type)}
+                                    </span>
+                                    <span className={`px-2 py-1 text-xs font-medium rounded-lg
+                                        ${category.status === 'active'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : 'bg-gray-100 text-gray-800'}`}
                                     >
-                                        <MdDelete size={18} />
-                                    </button>
+                                        {toTitleCase(category.status)}
+                                    </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                    ${category.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                                >
-                                    {toTitleCase(category.type)}
-                                </span>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                    ${category.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
-                                >
-                                    {toTitleCase(category.status)}
-                                </span>
-                                <span className="text-gray-500">
-                                    {new Date(category.createdAt).toLocaleDateString()}
-                                </span>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                ))}
+                )}
             </div>
 
             {/* Desktop Table View */}
