@@ -216,7 +216,7 @@ export default function Sidebar({ onClose, isMobileOpen }) {
 const MobileHeader = ({ onClose }) => (
     <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm z-10 lg:hidden">
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <h1 className="text-base font-medium">Menu</h1>
+            <h1 className="text-base font-medium">Monthly Expense Tracker</h1>
             <button
                 onClick={onClose}
                 className="p-2 -mr-2 hover:bg-gray-800 rounded-lg transition-colors active:bg-gray-700 touch-none"
