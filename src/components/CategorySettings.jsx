@@ -178,13 +178,13 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
     );
 };
 
-export default function CategorySettings({ showOnlyForm, showOnlyList }) {
+export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess }) {
     // Add error state
     const [error, setError] = useState(null);
 
     // Organized state management
     const [state, setState] = useState({
-        categories: [],
+        categories: [], // Change to array
         isLoading: true,
         isSubmitting: false,
         filter: 'all',
@@ -216,10 +216,19 @@ export default function CategorySettings({ showOnlyForm, showOnlyList }) {
         
         try {
             setState(prev => ({ ...prev, isLoading: true }));
-            const fetchedCategories = await getCategories(currentUser.uid);
+            const categoriesData = await getCategories();
+            
+            // Convert categories object to array
+            const categoriesArray = Object.entries(categoriesData).reduce((acc, [type, categories]) => {
+                return [...acc, ...categories.map(cat => ({
+                    ...cat,
+                    type // Ensure type is included
+                }))];
+            }, []);
+
             setState(prev => ({ 
                 ...prev, 
-                categories: fetchedCategories,
+                categories: categoriesArray,
                 isLoading: false 
             }));
             setError(null);
@@ -419,6 +428,50 @@ export default function CategorySettings({ showOnlyForm, showOnlyList }) {
             setError(message);
         } finally {
             setState(prev => ({ ...prev, isLoading: false }));
+        }
+    };
+
+    const validateCategory = useCallback((category) => {
+        if (!category.name?.trim()) {
+            throw new Error('Category name is required');
+        }
+        if (category.name.length < 2) {
+            throw new Error('Category name must be at least 2 characters');
+        }
+        if (!['expense', 'income'].includes(category.type)) {
+            throw new Error('Invalid category type');
+        }
+        return true;
+    }, []);
+
+    const handleCategoryAction = async (action, categoryData) => {
+        try {
+            validateCategory(categoryData);
+            setState(prev => ({ ...prev, isSubmitting: true }));
+            
+            switch (action) {
+                case 'add':
+                    await addCategory(currentUser.uid, categoryData);
+                    showMessage('Category added successfully', 'success');
+                    break;
+                case 'update':
+                    await updateCategory(categoryData.id, categoryData);
+                    showMessage('Category updated successfully', 'success');
+                    break;
+                case 'delete':
+                    await deleteCategory(categoryData.id);
+                    showMessage('Category deleted successfully', 'success');
+                    break;
+                default:
+                    throw new Error('Invalid action');
+            }
+
+            if (onSuccess) onSuccess();
+            resetForm();
+        } catch (error) {
+            showMessage(error.message, 'error');
+        } finally {
+            setState(prev => ({ ...prev, isSubmitting: false }));
         }
     };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -148,7 +148,10 @@ export default function Expenses() {
     return true;
   });
 
-  const categories = [...new Set(transactions.map(t => t.category))];
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(transactions.map(t => t.categoryName || t.category))];
+    return uniqueCategories.filter(Boolean); // Remove any null/undefined values
+  }, [transactions]);
 
   const renderMobileEmptyState = () => (
     <div className="text-center py-12 px-4">
@@ -165,12 +168,16 @@ export default function Expenses() {
     </div>
   );
 
+  const getCategoryName = (transaction) => {
+    return transaction.categoryName || 'Unknown Category';
+  };
+
   const renderMobileTransactionCard = (transaction, index) => {
     const isIncome = transaction.type === 'income';
     
     return (
       <div
-        key={transaction.id}
+        key={`mobile-transaction-${transaction.id}`}
         className="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 
                  border border-gray-100 overflow-hidden"
       >
@@ -197,7 +204,7 @@ export default function Expenses() {
                 </svg>
               </div>
               <div>
-                <h4 className="text-sm font-semibold text-gray-900">{transaction.category}</h4>
+                <h4 className="text-sm font-semibold text-gray-900">{getCategoryName(transaction)}</h4>
                 <p className="text-xs text-gray-500 mt-0.5">#{index + 1}</p>
               </div>
             </div>
@@ -250,6 +257,53 @@ export default function Expenses() {
       </div>
     );
   };
+
+  const renderTransactionRow = (transaction, index) => (
+    <tr key={`desktop-transaction-${transaction.id}`} className="hover:bg-gray-50">
+      <td className="px-4 py-3 text-xs text-gray-500">
+        {index + 1}
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500">
+        {format(new Date(transaction.date), 'MMM dd, yyyy')}
+      </td>
+      <td className="px-4 py-3">
+        <span className={`inline-block px-2 py-1 rounded-full text-xs
+          ${transaction.type === 'income' 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'}`}>
+          {transaction.type}
+        </span>
+      </td>
+      <td className="px-4 py-3">{getCategoryName(transaction)}</td>
+      <td className="px-4 py-3 text-gray-500">{transaction.description}</td>
+      <td className={`px-4 py-3 text-right font-medium
+        ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+        ${transaction.amount.toFixed(2)}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEditTransaction(transaction)}
+            className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
+            title="Edit transaction"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => handleDeleteClick(transaction)}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+            title="Delete transaction"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <>
@@ -389,9 +443,11 @@ export default function Expenses() {
                         onChange={(e) => handleFilterChange('category', e.target.value)}
                         className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm min-w-[150px]"
                       >
-                        <option value="all">All Categories</option>
+                        <option key="all-categories" value="all">All Categories</option>
                         {categories.map(category => (
-                          <option key={category} value={category}>{category}</option>
+                          <option key={`category-${category}`} value={category}>
+                            {category}
+                          </option>
                         ))}
                       </select>
 
@@ -461,7 +517,7 @@ export default function Expenses() {
                       >
                         <option value="all">All Categories</option>
                         {categories.map(category => (
-                          <option key={category} value={category}>{category}</option>
+                          <option key={`category-${category}`} value={category}>{category}</option>
                         ))}
                       </select>
                     </div>
@@ -567,50 +623,7 @@ export default function Expenses() {
                             </tr>
                           ) : (
                             filteredTransactions.map((transaction, index) => (
-                              <tr key={transaction.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-xs text-gray-500">
-                                  {index + 1}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-gray-500">
-                                  {format(new Date(transaction.date), 'MMM dd, yyyy')}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-block px-2 py-1 rounded-full text-xs
-                                    ${transaction.type === 'income' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-red-100 text-red-800'}`}>
-                                    {transaction.type}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3">{transaction.category}</td>
-                                <td className="px-4 py-3 text-gray-500">{transaction.description}</td>
-                                <td className={`px-4 py-3 text-right font-medium
-                                  ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                                  ${transaction.amount.toFixed(2)}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => handleEditTransaction(transaction)}
-                                      className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
-                                      title="Edit transaction"
-                                    >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                      </svg>
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteClick(transaction)}
-                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                      title="Delete transaction"
-                                    >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
+                              renderTransactionRow(transaction, index)
                             ))
                           )}
                         </tbody>

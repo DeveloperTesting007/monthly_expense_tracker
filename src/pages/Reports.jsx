@@ -106,22 +106,21 @@ export default function Reports() {
     monthlyExpenses
   } = React.useMemo(() => processMonthlyData(transactions), [transactions, selectedYear]);
 
-  // Update how we handle category data
+  // Update category data processing with proper category names
   const categoryData = React.useMemo(() => {
     if (!Array.isArray(transactions)) return [];
 
     const expensesByCategory = transactions.reduce((acc, transaction) => {
       if (transaction.type === 'expense' &&
         new Date(transaction.date).getFullYear() === selectedYear) {
-        const category = transaction.category || 'Other';
-        acc[category] = (acc[category] || 0) + Number(transaction.amount || 0);
+        const categoryName = transaction.categoryName || 'Other'; // Use categoryName instead of category
+        acc[categoryName] = (acc[categoryName] || 0) + Number(transaction.amount || 0);
       }
       return acc;
     }, {});
 
     const totalExpenses = Object.values(expensesByCategory).reduce((a, b) => a + b, 0);
 
-    // Calculate percentages and sort by amount
     return Object.entries(expensesByCategory)
       .map(([category, amount]) => ({
         category,
@@ -132,15 +131,15 @@ export default function Reports() {
       .slice(0, 6); // Top 6 categories
   }, [transactions, selectedYear]);
 
-  // Add income category data processing
+  // Update income category data processing
   const incomeData = React.useMemo(() => {
     if (!Array.isArray(transactions)) return [];
 
     const incomeByCategory = transactions.reduce((acc, transaction) => {
       if (transaction.type === 'income' &&
         new Date(transaction.date).getFullYear() === selectedYear) {
-        const category = transaction.category || 'Other';
-        acc[category] = (acc[category] || 0) + Number(transaction.amount || 0);
+        const categoryName = transaction.categoryName || 'Other'; // Use categoryName instead of category
+        acc[categoryName] = (acc[categoryName] || 0) + Number(transaction.amount || 0);
       }
       return acc;
     }, {});
@@ -154,7 +153,7 @@ export default function Reports() {
         percentage: totalIncome ? (amount / totalIncome * 100).toFixed(1) : 0
       }))
       .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6); // Top 6 categories
+      .slice(0, 6);
   }, [transactions, selectedYear]);
 
   // Chart configurations with dynamic data
@@ -179,38 +178,44 @@ export default function Reports() {
   };
 
   // Update chart configurations to use categoryData directly
-  const doughnutChartData = {
-    labels: categoryData.map(item => `${item.category} (${item.percentage}%)`),
-    datasets: [{
-      data: categoryData.map(item => item.amount),
-      backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(249, 115, 22, 0.8)',
-        'rgba(139, 92, 246, 0.8)',
-        'rgba(236, 72, 153, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-      ],
-    }],
+  const doughnutChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: window.innerWidth < 640 ? 'bottom' : 'right',
+        labels: {
+          boxWidth: 12,
+          usePointStyle: true,
+          generateLabels: (chart) => {
+            const data = chart.data;
+            if (data.labels.length && data.datasets.length) {
+              return data.labels.map((label, i) => ({
+                text: `${label} ($${data.datasets[0].data[i].toFixed(2)})`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                strokeStyle: data.datasets[0].backgroundColor[i],
+                pointStyle: 'circle',
+                index: i
+              }));
+            }
+            return [];
+          }
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || '';
+            const value = context.raw || 0;
+            const percentage = context.dataset.data[context.dataIndex];
+            return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+          }
+        }
+      }
+    }
   };
 
-  // Add income chart data
-  const incomeDoughnutChartData = {
-    labels: incomeData.map(item => `${item.category} (${item.percentage}%)`),
-    datasets: [{
-      data: incomeData.map(item => item.amount),
-      backgroundColor: [
-        'rgba(34, 197, 94, 0.8)',  // Green
-        'rgba(59, 130, 246, 0.8)', // Blue
-        'rgba(139, 92, 246, 0.8)', // Purple
-        'rgba(236, 72, 153, 0.8)', // Pink
-        'rgba(245, 158, 11, 0.8)', // Orange
-        'rgba(99, 102, 241, 0.8)',  // Indigo
-      ],
-    }],
-  };
-
-  // Update the expense chart data with consistent styling
+  // Update doughnut chart data configurations with percentage labels
   const expenseDoughnutChartData = {
     labels: categoryData.map(item => `${item.category} (${item.percentage}%)`),
     datasets: [{
@@ -223,7 +228,23 @@ export default function Reports() {
         'rgba(59, 130, 246, 0.8)', // Blue
         'rgba(139, 92, 246, 0.8)',  // Purple
       ],
-    }],
+    }]
+  };
+
+  // Add income chart data with percentage labels
+  const incomeDoughnutChartData = {
+    labels: incomeData.map(item => `${item.category} (${item.percentage}%)`),
+    datasets: [{
+      data: incomeData.map(item => item.amount),
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',  // Green
+        'rgba(59, 130, 246, 0.8)', // Blue
+        'rgba(139, 92, 246, 0.8)', // Purple
+        'rgba(236, 72, 153, 0.8)', // Pink
+        'rgba(245, 158, 11, 0.8)', // Orange
+        'rgba(99, 102, 241, 0.8)',  // Indigo
+      ],
+    }]
   };
 
   // Calculate summary totals for the selected year
@@ -802,30 +823,14 @@ export default function Reports() {
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Income Categories</h3>
                 <div className="h-[300px] sm:h-[350px]">
-                  <Doughnut data={incomeDoughnutChartData} options={{
-                    // ...existing options...
-                    plugins: {
-                      legend: {
-                        position: window.innerWidth < 640 ? 'bottom' : 'right',
-                        // ...rest of legend options
-                      }
-                    }
-                  }} />
+                  <Doughnut data={incomeDoughnutChartData} options={doughnutChartOptions} />
                 </div>
               </div>
 
               <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg font-semibold mb-4">Expense Categories</h3>
                 <div className="h-[300px] sm:h-[350px]">
-                  <Doughnut data={expenseDoughnutChartData} options={{
-                    // ...existing options...
-                    plugins: {
-                      legend: {
-                        position: window.innerWidth < 640 ? 'bottom' : 'right',
-                        // ...rest of legend options
-                      }
-                    }
-                  }} />
+                  <Doughnut data={expenseDoughnutChartData} options={doughnutChartOptions} />
                 </div>
               </div>
 

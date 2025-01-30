@@ -8,7 +8,8 @@ import {
     deleteDoc, 
     query, 
     where, 
-    serverTimestamp 
+    serverTimestamp,
+    orderBy 
 } from 'firebase/firestore';
 
 // Add a new category
@@ -38,44 +39,32 @@ export const addCategory = async (userId, categoryData) => {
     }
 };
 
-// Get all categories for a user
-export const getCategories = async (userId, type = null) => {
-    if (!userId) throw new Error('User ID is required');
-
+// Get all categories for a user with proper sorting
+export const getCategories = async () => {
     try {
-        let queryRef;
-        if (type) {
-            queryRef = query(
-                collection(db, 'categories'),
-                where('userId', '==', userId),
-                where('type', '==', type)
-            );
-        } else {
-            queryRef = query(
-                collection(db, 'categories'),
-                where('userId', '==', userId)
-            );
-        }
-
-        const snapshot = await getDocs(queryRef);
+        const categoriesRef = collection(db, 'categories');
+        const q = query(categoriesRef, orderBy('name', 'asc'));
+        const snapshot = await getDocs(q);
         
-        // Add error handling for empty results
-        if (snapshot.empty) {
-            return [];
-        }
+        const categories = {
+            expense: [],
+            income: []
+        };
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate()
-        }));
+        snapshot.forEach((doc) => {
+            const category = {
+                id: doc.id,
+                ...doc.data()
+            };
+            if (categories[category.type]) {
+                categories[category.type].push(category);
+            }
+        });
+
+        return categories;
     } catch (error) {
-        console.error('Get categories error:', error);
-        if (error.code === 'permission-denied') {
-            throw new Error('You do not have permission to access these categories');
-        }
-        throw new Error('Failed to fetch categories: ' + error.message);
+        console.error('Error fetching categories:', error);
+        throw new Error('Failed to fetch categories');
     }
 };
 

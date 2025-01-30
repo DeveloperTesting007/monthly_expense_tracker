@@ -2,21 +2,36 @@ import { db } from '../config/firebase';
 import { collection, addDoc, query, orderBy, limit, getDocs, where, doc, updateDoc, serverTimestamp, deleteDoc, startAfter, Timestamp } from 'firebase/firestore';
 import { getCategories } from './categoryService';
 
+// Add helper function for category mapping
+const createCategoryMap = (categoriesData) => {
+    const categoryMap = {};
+    Object.values(categoriesData).forEach(typeCategories => {
+        typeCategories.forEach(category => {
+            categoryMap[category.id] = {
+                name: category.name,
+                type: category.type
+            };
+        });
+    });
+    return categoryMap;
+};
+
 export const addTransaction = async (userId, transactionData) => {
     if (!userId) throw new Error('User ID is required');
 
     try {
         // Verify that the category exists
-        const categories = await getCategories(userId, transactionData.type);
-        const categoryExists = categories.some(cat => cat.id === transactionData.categoryId);
+        const categories = await getCategories();
+        const category = categories[transactionData.type].find(c => c.id === transactionData.categoryId);
         
-        if (!categoryExists) {
+        if (!category) {
             throw new Error('Invalid category');
         }
 
         const transaction = {
             ...transactionData,
             userId,
+            categoryName: category.name, // Store both ID and name
             createdAt: Date.now(),
             date: new Date(transactionData.date).toISOString(),
             amount: Number(transactionData.amount)
@@ -34,6 +49,11 @@ export const getRecentTransactions = async (userId, lastDoc = null, pageSize = 1
     if (!userId) throw new Error('User ID is required');
 
     try {
+        // First, fetch all categories to create a lookup map
+        const categoriesData = await getCategories();
+        const categoryMap = createCategoryMap(categoriesData);
+
+        // Fetch transactions
         let queryRef = query(
             collection(db, 'transactions'),
             where('userId', '==', userId),
@@ -42,23 +62,24 @@ export const getRecentTransactions = async (userId, lastDoc = null, pageSize = 1
         );
 
         if (lastDoc) {
-            queryRef = query(
-                collection(db, 'transactions'),
-                where('userId', '==', userId),
-                orderBy('createdAt', 'desc'),
-                startAfter(lastDoc),
-                limit(pageSize)
-            );
+            queryRef = query(queryRef, startAfter(lastDoc));
         }
 
         const snapshot = await getDocs(queryRef);
         const lastVisible = snapshot.docs[snapshot.docs.length - 1];
         
-        const transactions = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            amount: Number(doc.data().amount)
-        }));
+        // Map transactions with proper category information
+        const transactions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const category = categoryMap[data.categoryId];
+            
+            return {
+                id: doc.id,
+                ...data,
+                amount: Number(data.amount),
+                categoryName: category ? category.name : (data.categoryName || 'Unknown Category')
+            };
+        });
 
         return {
             transactions,
@@ -75,6 +96,10 @@ export const getAllTransactions = async (userId, dateRange = 'all') => {
     if (!userId) throw new Error('User ID is required');
 
     try {
+        // First fetch categories for lookup
+        const categoriesData = await getCategories();
+        const categoryMap = createCategoryMap(categoriesData);
+
         let q = query(
             collection(db, 'transactions'),
             where('userId', '==', userId),
@@ -114,12 +139,18 @@ export const getAllTransactions = async (userId, dateRange = 'all') => {
         }
 
         const snapshot = await getDocs(q);
-        const transactions = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            amount: Number(doc.data().amount || 0), // Ensure amount is a number
-            date: doc.data().date // Ensure date is included
-        }));
+        const transactions = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const category = categoryMap[data.categoryId];
+            
+            return {
+                id: doc.id,
+                ...data,
+                amount: Number(data.amount || 0),
+                categoryName: category ? category.name : (data.categoryName || 'Unknown Category'),
+                date: data.date
+            };
+        });
 
         return { transactions }; // Return in expected format
     } catch (error) {
@@ -147,6 +178,7 @@ const calculateTransactionSummary = (transactions) => {
     });
 };
 
+// Update category breakdown calculation
 const calculateCategoryBreakdown = (transactions) => {
     const breakdown = {
         income: {},
@@ -155,13 +187,13 @@ const calculateCategoryBreakdown = (transactions) => {
 
     transactions.forEach(transaction => {
         const type = transaction.type;
-        const category = transaction.category;
+        const categoryName = transaction.categoryName || 'Unknown Category';
         const amount = Number(transaction.amount);
 
-        if (!breakdown[type][category]) {
-            breakdown[type][category] = 0;
+        if (!breakdown[type][categoryName]) {
+            breakdown[type][categoryName] = 0;
         }
-        breakdown[type][category] += amount;
+        breakdown[type][categoryName] += amount;
     });
 
     return breakdown;

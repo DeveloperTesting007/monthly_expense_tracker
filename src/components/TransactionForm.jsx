@@ -1,31 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { getCategories } from '../services/categoryService';
+import { db } from '../config/firebase';
 
 export default function TransactionForm({ onSubmit, isLoading, editData, onCancel }) {
   const [formData, setFormData] = useState({
     type: 'expense',
-    category: '',
+    categoryId: '',
     amount: '',
     description: '',
     date: new Date().toISOString().split('T')[0]
   });
   const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState({ expense: [], income: [] });
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState(null);
 
-  const categories = {
-    expense: ['Food', 'Transportation', 'Housing', 'Utilities', 'Entertainment', 'Shopping', 'Healthcare', 'Other'],
-    income: ['Salary', 'Freelance', 'Investments', 'Gift', 'Other']
-  };
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const fetchedCategories = await getCategories();
+        setCategories(fetchedCategories);
+        setCategoryError(null);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategoryError('Failed to load categories');
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (editData) {
       setFormData({
         type: editData.type,
-        category: editData.category,
+        categoryId: editData.categoryId,
         amount: editData.amount.toString(),
         description: editData.description,
         date: new Date(editData.date).toISOString().split('T')[0]
       });
     } else {
-      // Reset form when editData becomes null
       resetForm();
     }
   }, [editData]);
@@ -38,8 +54,8 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     }
-    if (!formData.category) {
-      newErrors.category = 'Please select a category';
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Please select a category';
     }
     if (!formData.date) {
       newErrors.date = 'Date is required';
@@ -56,11 +72,10 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
       type: formData.type,
       amount: parseFloat(formData.amount),
       description: formData.description.trim(),
-      category: formData.category,
+      categoryId: formData.categoryId,
       date: formData.date
     });
 
-    // Reset form
     resetForm();
   };
 
@@ -75,7 +90,7 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
   const resetForm = () => {
     setFormData({
       type: 'expense',
-      category: '',
+      categoryId: '',
       amount: '',
       description: '',
       date: new Date().toISOString().split('T')[0]
@@ -90,7 +105,6 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Transaction Type Selector */}
       <div className="flex justify-center">
         <div className="inline-flex p-1 bg-gray-100 rounded-xl">
           {['expense', 'income'].map((typeOption) => (
@@ -101,7 +115,7 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
                 setFormData((prevData) => ({
                   ...prevData,
                   type: typeOption,
-                  category: ''
+                  categoryId: ''
                 }));
               }}
               className={`
@@ -137,47 +151,58 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
         </div>
       </div>
 
-      {/* Category Select */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Category
-        </label>
-        <div className="relative">
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className={`
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Category
+          </label>
+          <div className="relative">
+            <select
+              name="categoryId"
+              value={formData.categoryId}
+              onChange={handleChange}
+              disabled={isLoadingCategories}
+              className={`
               block w-full rounded-lg border-0 py-3 px-3
               text-gray-900 ring-1 ring-inset
               focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6
               appearance-none bg-white
-              ${errors.category
-                ? 'ring-red-300 focus:ring-red-500'
-                : 'ring-gray-300 focus:ring-blue-500'
-              }
+              ${errors.categoryId || categoryError
+                  ? 'ring-red-300 focus:ring-red-500'
+                  : 'ring-gray-300 focus:ring-blue-500'
+                }
+              ${isLoadingCategories ? 'opacity-50 cursor-not-allowed' : ''}
             `}
-          >
-            <option value="">Select category</option>
-            {categories[formData.type].map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            >
+              <option value="">
+                {isLoadingCategories
+                  ? 'Loading categories...'
+                  : categoryError
+                    ? 'Error loading categories'
+                    : 'Select category'
+                }
               </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
-            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+              {!isLoadingCategories && !categoryError && categories[formData.type].map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+              {isLoadingCategories ? (
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </div>
           </div>
+          {(errors.categoryId || categoryError) && (
+            <p className="mt-2 text-sm text-red-600">{errors.categoryId || categoryError}</p>
+          )}
         </div>
-        {errors.category && (
-          <p className="mt-2 text-sm text-red-600">{errors.category}</p>
-        )}
-      </div>
 
-      {/* Amount and Date Inputs */}
-      <div className="grid gap-6 sm:grid-cols-2">
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Amount
@@ -209,7 +234,9 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
             <p className="mt-2 text-sm text-red-600">{errors.amount}</p>
           )}
         </div>
+      </div>
 
+      <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Date
@@ -233,35 +260,33 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
             <p className="mt-2 text-sm text-red-600">{errors.date}</p>
           )}
         </div>
-      </div>
 
-      {/* Description Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description
-        </label>
-        <input
-          type="text"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          className={`
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <input
+            type="text"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            className={`
             block w-full rounded-lg border-0 py-3 px-3
             text-gray-900 ring-1 ring-inset placeholder:text-gray-400
             focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6
             ${errors.description
-              ? 'ring-red-300 focus:ring-red-500'
-              : 'ring-gray-300 focus:ring-blue-500'
-            }
+                ? 'ring-red-300 focus:ring-red-500'
+                : 'ring-gray-300 focus:ring-blue-500'
+              }
           `}
-          placeholder="Enter description"
-        />
-        {errors.description && (
-          <p className="mt-2 text-sm text-red-600">{errors.description}</p>
-        )}
+            placeholder="Enter description"
+          />
+          {errors.description && (
+            <p className="mt-2 text-sm text-red-600">{errors.description}</p>
+          )}
+        </div>
       </div>
 
-      {/* Submit Button Section - Updated for better mobile experience */}
       <div className="flex flex-col-reverse sm:flex-row justify-center gap-3 mt-6">
         {editData && (
           <button
@@ -288,8 +313,8 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
                      transition-all duration-200 hover:shadow-md 
                      active:scale-[0.98] disabled:opacity-50
                      flex items-center justify-center gap-2
-            ${formData.type === 'income' 
-              ? 'bg-green-600 hover:bg-green-700 active:bg-green-800' 
+            ${formData.type === 'income'
+              ? 'bg-green-600 hover:bg-green-700 active:bg-green-800'
               : 'bg-red-600 hover:bg-red-700 active:bg-red-800'}`}
           disabled={isLoading}
         >
@@ -303,7 +328,7 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
               {editData ? (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                       d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Update Transaction</span>
@@ -311,7 +336,7 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   <span>Add Transaction</span>

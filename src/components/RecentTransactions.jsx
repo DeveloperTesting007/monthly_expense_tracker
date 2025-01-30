@@ -22,11 +22,21 @@ const TransactionSkeleton = () => (
 export default function RecentTransactions({ transactions, isLoading }) {
   const [expandedId, setExpandedId] = useState(null);
 
+  const getCategoryInfo = (transaction) => {
+    if (transaction.categoryName) {
+      return transaction.categoryName;
+    }
+    if (transaction.category?.name) {
+      return transaction.category.name;
+    }
+    return 'Unknown Category';
+  };
+
   if (isLoading) {
     return (
       <div className="divide-y divide-gray-200 bg-white rounded-lg">
         {[...Array(5)].map((_, index) => (
-          <TransactionSkeleton key={index} />
+          <TransactionSkeleton key={`skeleton-${index}`} />
         ))}
       </div>
     );
@@ -73,7 +83,7 @@ export default function RecentTransactions({ transactions, isLoading }) {
                 <p className="font-medium text-gray-900">{transaction.description}</p>
                 <p className="text-sm text-gray-500">
                   {format(new Date(transaction.date), 'MMM d, yyyy')}
-                  {transaction.category && ` • ${transaction.category}`}
+                  {` • ${getCategoryInfo(transaction)}`}
                 </p>
               </div>
             </div>
@@ -114,7 +124,7 @@ export default function RecentTransactions({ transactions, isLoading }) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">Category</p>
-                  <p className="text-base text-gray-900">{transaction.category}</p>
+                  <p className="text-base text-gray-900">{getCategoryInfo(transaction)}</p>
                 </div>
               </div>
               
