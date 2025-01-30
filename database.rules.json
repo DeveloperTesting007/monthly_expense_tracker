@@ -1,0 +1,37 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "categories": {
+          ".read": "$uid === auth.uid",
+          ".write": "$uid === auth.uid",
+          "$categoryId": {
+            ".validate": "newData.hasChildren(['name', 'type', 'status', 'createdAt', 'updatedAt'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 50"
+            },
+            "type": {
+              ".validate": "newData.isString() && (newData.val() === 'expense' || newData.val() === 'income')"
+            },
+            "status": {
+              ".validate": "newData.isString() && (newData.val() === 'active' || newData.val() === 'inactive')"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
