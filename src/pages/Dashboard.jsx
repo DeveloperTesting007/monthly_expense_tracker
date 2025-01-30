@@ -175,21 +175,34 @@ export default function Dashboard() {
       {/* Main Content - Updated max width and padding */}
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto"> {/* Changed from max-w-3xl to max-w-6xl */}
-            {/* Mobile Header */}
-            <div className="flex justify-between items-center mb-8"> {/* Increased margin bottom */}
-              <button
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-                onClick={() => setIsMobileMenuOpen(true)}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+          <div className="max-w-6xl mx-auto">
+            {/* Updated Mobile Header */}
+            <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm mb-6">
+              <div className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <button
+                    className="lg:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    aria-label="Open menu"
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                      Welcome Back!
+                    </h1>
+                    <p className="text-sm text-gray-600 hidden sm:block">
+                      Here's your financial overview
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-              <div className="flex-1 ml-4 lg:ml-0">
-                <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Welcome Back!</h1>
-                <p className="text-sm lg:text-base text-gray-600">Here's your financial overview</p>
+              {/* Mobile Subheader - Only visible on smallest screens */}
+              <div className="sm:hidden -mt-2 pb-4">
+                <p className="text-sm text-gray-600">Here's your financial overview</p>
               </div>
             </div>
 
