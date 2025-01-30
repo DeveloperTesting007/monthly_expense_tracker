@@ -29,12 +29,30 @@ const toTitleCase = (str) => {
 };
 
 // Updated Add Category Form
-const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
+const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, onCancelEdit }) => {
     const [formData, setFormData] = useState({
         name: '',
         type: 'expense',
         status: 'active'
     });
+
+    // Initialize form with editing data
+    useEffect(() => {
+        if (editingCategory) {
+            setFormData({
+                name: editingCategory.name,
+                type: editingCategory.type,
+                status: editingCategory.status || 'active'
+            });
+        } else {
+            setFormData({
+                name: '',
+                type: 'expense',
+                status: 'active'
+            });
+        }
+    }, [editingCategory]);
+
     const [touched, setTouched] = useState({});
 
     const handleChange = (field, value) => {
@@ -60,9 +78,20 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
         if (formData.name.trim().length < 2) {
             return;
         }
-        onSubmit(formData);
-        setFormData({ name: '', type: 'expense', status: 'active' });
-        setTouched({});
+        const submitData = {
+            ...formData,
+            id: editingCategory?.id,
+            name: formData.name.trim(),
+            type: formData.type.toLowerCase(),
+            status: formData.status,
+            updatedAt: new Date()
+        };
+
+        onSubmit(submitData);
+
+        if (!editingCategory) {
+            setFormData({ name: '', type: 'expense', status: 'active' });
+        }
     };
 
     const isNameValid = formData.name.trim().length >= 2;
@@ -141,33 +170,38 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
                     </div>
                 </div>
 
-                <div className="flex justify-center pt-6">
+                <div className="flex justify-end gap-3">
+                    {editingCategory && (
+                        <button
+                            type="button"
+                            onClick={onCancelEdit}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border 
+                                border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                    )}
                     <button
                         type="submit"
                         disabled={disabled || isSubmitting || !isNameValid}
-                        className="inline-flex items-center px-6 py-2.5 border border-transparent 
-                            rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 
-                            hover:bg-indigo-700 focus:outline-none focus:ring-2 
-                            focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 
-                            disabled:cursor-not-allowed transition-all duration-200
-                            transform hover:scale-[1.02] active:scale-[0.98]"
+                        className="inline-flex items-center px-4 py-2 border border-transparent 
+                            rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 
+                            hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 
+                            focus:ring-indigo-500 disabled:opacity-50"
                     >
                         {isSubmitting ? (
                             <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
                                     fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10"
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" 
                                         stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor"
+                                    <path className="opacity-75" fill="currentColor" 
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
-                                Creating Category...
+                                {editingCategory ? 'Updating...' : 'Creating...'}
                             </>
                         ) : (
-                            <>
-                                <MdAdd className="-ml-1 mr-2 h-5 w-5" />
-                                Create Category
-                            </>
+                            editingCategory ? 'Update Category' : 'Create Category'
                         )}
                     </button>
                 </div>
@@ -176,7 +210,14 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting }) => {
     );
 };
 
-export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess }) {
+export default function CategorySettings({ 
+    showOnlyForm, 
+    showOnlyList, 
+    onSuccess,
+    editingCategory,
+    onCancelEdit,
+    // ...other props
+}) {
     // Add error state
     const [error, setError] = useState(null);
 
@@ -301,10 +342,13 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
             return;
         }
 
-        // Check if category name already exists
+        // Check if category name already exists (but ignore current category when editing)
         const nameExists = state.categories.some(
-            cat => cat.name.toLowerCase() === categoryData.name.trim().toLowerCase() && cat.type.toLowerCase() === categoryData.type.trim().toLowerCase()
+            cat => cat.id !== categoryData.id && // Skip current category when editing
+                cat.name.toLowerCase() === categoryData.name.trim().toLowerCase() &&
+                cat.type.toLowerCase() === categoryData.type.trim().toLowerCase()
         );
+
         if (nameExists) {
             showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
             return;
@@ -314,17 +358,28 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
         setError(null);
 
         try {
-            await addCategory(currentUser.uid, {
-                ...categoryData,
-                name: categoryData.name.trim(),
-                type: categoryData.type.toLowerCase(),
-                createdAt: new Date(),
-                updatedAt: new Date()
-            });
-            showMessage('Category added successfully', 'success');
+            if (categoryData.id) {
+                // Update existing category
+                await updateCategory(categoryData.id, {
+                    ...categoryData,
+                    updatedAt: new Date()
+                });
+                showMessage('Category updated successfully', 'success');
+            } else {
+                // Add new category
+                await addCategory(currentUser.uid, {
+                    ...categoryData,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                });
+                showMessage('Category added successfully', 'success');
+            }
+
             await loadCategories();
+            if (onSuccess) onSuccess();
         } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.ADD_ERROR;
+            const message = error.response?.data?.message || 
+                (categoryData.id ? ERROR_MESSAGES.UPDATE_ERROR : ERROR_MESSAGES.ADD_ERROR);
             showMessage(message, 'error');
             setError(message);
         } finally {
@@ -785,6 +840,8 @@ export default function CategorySettings({ showOnlyForm, showOnlyList, onSuccess
                                 onSubmit={handleAddCategory}
                                 disabled={state.isLoading}
                                 isSubmitting={state.isSubmitting}
+                                editingCategory={editingCategory}
+                                onCancelEdit={onCancelEdit}
                             />
                         </div>
                     )}
