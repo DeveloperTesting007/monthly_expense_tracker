@@ -9,6 +9,7 @@ import {
     EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import GoogleButton from './GoogleButton';
+import LoadingSpinner from './LoadingSpinner.jsx';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -45,6 +46,8 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 sm:px-6 lg:px-8">
+            {loading && <LoadingSpinner size="lg" overlay={true} />}
+            
             <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
                 <div className="text-center">
                     <UserCircleIcon className="mx-auto h-12 w-12 text-indigo-600" />
@@ -112,12 +115,15 @@ export default function Login() {
                             type="submit"
                             disabled={loading}
                             className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                ${loading
-                                    ? 'bg-indigo-400 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                                }`}
+                        ${loading ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} 
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                         >
-                            {loading ? 'Signing in...' : 'Sign in'}
+                            <span className="flex items-center">
+                                {loading && <LoadingSpinner size="sm" />}
+                                <span className={loading ? "ml-2" : ""}>
+                                    {loading ? 'Signing in...' : 'Sign in'}
+                                </span>
+                            </span>
                         </button>
                     </div>
 
