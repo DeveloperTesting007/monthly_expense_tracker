@@ -17,12 +17,15 @@ import {
 // Styling constants
 const STYLE = {
     menuItem: {
-        base: `flex items-center rounded-lg transition-all duration-200 min-h-[48px] touch-none`,
+        base: `flex items-center rounded-lg transition-all duration-200 min-h-[42px] touch-none`,
         active: `bg-indigo-600 text-white shadow-md`,
         inactive: `hover:bg-gray-800/50 active:bg-gray-800 text-gray-400 hover:text-white`,
-        collapsed: `justify-center p-3`,
+        collapsed: `justify-center p-2 relative group`,
         expanded: `px-4 py-3 gap-3`
     },
+    tooltip: `absolute left-full ml-3 px-2 py-1 bg-gray-800 text-white text-sm 
+        rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 
+        pointer-events-none z-50 shadow-lg transition-opacity duration-150`,
     subMenuItem: {
         base: `flex items-center pl-12 pr-4 py-2 rounded-lg transition-all duration-200 gap-3`,
         active: `bg-indigo-600/50 text-white`,
@@ -44,6 +47,7 @@ const MenuItem = ({ item, isCollapsed, isActive, onClose }) => {
             >
                 <span className="flex-shrink-0">{item.icon}</span>
                 {!isCollapsed && <span className="font-medium truncate">{item.title}</span>}
+                {isCollapsed && <span className={STYLE.tooltip}>{item.title}</span>}
             </Link>
         );
     }
@@ -55,10 +59,10 @@ const CollapsibleMenuItem = ({ item, isCollapsed, isActive, expandedMenus, toggl
     const isExpanded = expandedMenus[item.title];
 
     return (
-        <>
+        <div className="relative group">
             <div
                 onClick={() => !isCollapsed && toggleSubmenu(item.title)}
-                className={`${STYLE.menuItem.base}
+                className={`${STYLE.menuItem.base} cursor-pointer
                     ${isCollapsed ? STYLE.menuItem.collapsed : STYLE.menuItem.expanded}
                     ${isActive ? STYLE.menuItem.active : STYLE.menuItem.inactive}`}
             >
@@ -73,6 +77,7 @@ const CollapsibleMenuItem = ({ item, isCollapsed, isActive, expandedMenus, toggl
                         )}
                     </>
                 )}
+                {isCollapsed && <span className={STYLE.tooltip}>{item.title}</span>}
             </div>
 
             {!isCollapsed && item.subItems && (
@@ -92,7 +97,7 @@ const CollapsibleMenuItem = ({ item, isCollapsed, isActive, expandedMenus, toggl
                     ))}
                 </div>
             )}
-        </>
+        </div>
     );
 };
 
@@ -151,7 +156,7 @@ export default function Sidebar({ onClose, isMobileOpen }) {
                 className={`bg-gray-900 text-gray-100 fixed left-0 top-0 h-full
                     w-[75vw] sm:w-[50vw] md:w-[35vw] lg:w-64
                     transition-all duration-300 ease-in-out z-30
-                    ${isCollapsed ? 'lg:w-16' : 'lg:w-64'} 
+                    ${isCollapsed ? 'lg:w-[52px]' : 'lg:w-64'} 
                     ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                     shadow-xl`}
             >
@@ -161,7 +166,8 @@ export default function Sidebar({ onClose, isMobileOpen }) {
                 {/* Desktop collapse button */}
                 <CollapseButton isCollapsed={isCollapsed} onClick={() => setIsCollapsed(!isCollapsed)} />
 
-                <div className="p-3 sm:p-4 flex flex-col h-[calc(100vh-56px)] lg:h-full overflow-y-auto">
+                <div className={`p-3 sm:p-4 flex flex-col h-[calc(100vh-56px)] lg:h-full overflow-y-auto
+                    ${isCollapsed ? 'lg:p-2' : ''}`}>
                     {/* Logo */}
                     <Logo isCollapsed={isCollapsed} />
 
@@ -242,23 +248,26 @@ const CollapseButton = ({ isCollapsed, onClick }) => (
 );
 
 const Logo = ({ isCollapsed }) => (
-    <div className="mb-6 text-center hidden lg:block">
-        <h1 className="font-bold text-xl">
+    <div className={`mb-6 text-center hidden lg:block overflow-hidden transition-all duration-300
+        ${isCollapsed ? 'mb-4' : ''}`}>
+        <h1 className="font-bold text-xl whitespace-nowrap">
             {isCollapsed ? '💰' : 'ExpenseTracker'}
         </h1>
     </div>
 );
 
 const UserProfile = ({ currentUser, isCollapsed }) => (
-    <div className="relative mb-6">
+    <div className="relative mb-6 transition-all duration-300">
         <div className="flex flex-col items-center text-center">
             {/* Avatar */}
             <div className="relative mb-2">
-                <div className="w-20 h-20 lg:w-14 lg:h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 
-                    flex items-center justify-center text-base lg:text-lg font-bold shadow-lg ring-2 ring-indigo-400/30">
+                <div className={`rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 
+                    flex items-center justify-center shadow-lg ring-2 ring-indigo-400/30
+                    transition-all duration-300
+                    ${isCollapsed ? 'w-8 h-8 text-sm' : 'w-14 h-14 text-base lg:text-lg font-bold'}`}>
                     {currentUser?.email?.[0].toUpperCase()}
                 </div>
-                <div className="w-3 h-3 lg:w-3.5 lg:h-3.5 bg-green-500 rounded-full absolute -bottom-0.5 -right-0.5 
+                <div className="w-3.5 h-3.5 bg-green-500 rounded-full absolute -bottom-0.5 -right-0.5 
                     border-2 border-gray-900 ring-2 ring-green-400/30"></div>
             </div>
 
@@ -288,11 +297,11 @@ const LogoutButton = ({ isCollapsed, onLogout }) => (
     <button
         onClick={onLogout}
         className={`mt-6 flex items-center rounded-lg transition-all duration-200
-            min-h-[48px] touch-none text-sm
+            min-h-[42px] touch-none text-sm
             hover:bg-red-500/10 active:bg-red-500/20 text-red-500 w-full
-            ${isCollapsed ? 'justify-center p-3' : 'px-4 py-3 gap-3'}`}
+            ${isCollapsed ? 'justify-center p-2 mt-4' : 'px-4 py-3 gap-3'}`}
     >
-        <MdLogout size={22} />
+        <MdLogout size={isCollapsed ? 20 : 22} />
         {!isCollapsed && <span className="font-medium">Logout</span>}
     </button>
 );
