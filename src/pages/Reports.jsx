@@ -18,6 +18,7 @@ import {
 import { getAllTransactions } from '../services/transactionService';
 import { format } from 'date-fns';
 import SavingsBreakdown from '../components/SavingsBreakdown';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // Register ChartJS components
 ChartJS.register(
@@ -722,6 +723,9 @@ export default function Reports() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Full page loader */}
+      {isLoading && <LoadingSpinner overlay size="lg" />}
+
       {/* Mobile Menu Overlay */}
       <div
         className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-20 transition-opacity duration-300 lg:hidden
@@ -782,103 +786,104 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Summary Stats - Improved mobile layout */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <div className="p-4 sm:p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Annual Summary</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-green-50">
-                    <p className="text-sm text-green-600 mb-1">Total Income</p>
-                    <p className="text-2xl font-bold text-green-700">
-                      ${yearSummary.totalIncome.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-red-50">
-                    <p className="text-sm text-red-600 mb-1">Total Expenses</p>
-                    <p className="text-2xl font-bold text-red-700">
-                      ${yearSummary.totalExpenses.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-indigo-50">
-                    <p className="text-sm text-indigo-600 mb-1">Net Balance</p>
-                    <p className="text-2xl font-bold text-indigo-700">
-                      ${yearSummary.netBalance.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts Grid - Improved responsive layout */}
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-              {/* Monthly Overview */}
-              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Overview</h3>
-                  <div className="h-[300px] sm:h-[400px]">
-                    <Bar
-                      data={monthlyOverviewConfig.data}
-                      options={{
-                        ...monthlyOverviewConfig.options,
-                        plugins: {
-                          ...monthlyOverviewConfig.options.plugins,
-                          legend: {
-                            ...monthlyOverviewConfig.options.plugins.legend,
-                            position: window.innerWidth < 640 ? 'bottom' : 'top'
-                          }
-                        }
-                      }}
-                    />
+            {/* Content sections - Only render when not loading */}
+            {!isLoading && (
+              <>
+                {/* Summary Stats */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-4 sm:p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Annual Summary</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-xl bg-green-50">
+                        <p className="text-sm text-green-600 mb-1">Total Income</p>
+                        <p className="text-2xl font-bold text-green-700">
+                          ${yearSummary.totalIncome.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-red-50">
+                        <p className="text-sm text-red-600 mb-1">Total Expenses</p>
+                        <p className="text-2xl font-bold text-red-700">
+                          ${yearSummary.totalExpenses.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-indigo-50">
+                        <p className="text-sm text-indigo-600 mb-1">Net Balance</p>
+                        <p className="text-2xl font-bold text-indigo-700">
+                          ${yearSummary.netBalance.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Cash Balance Trend */}
-              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Cash Balance Trend</h3>
-                  <div className="h-[300px] sm:h-[400px]">
-                    <Line
-                      data={balanceChartData}
-                      options={{
-                        ...balanceChartOptions,
-                        plugins: {
-                          ...balanceChartOptions.plugins,
-                          legend: {
-                            ...balanceChartOptions.plugins.legend,
-                            position: window.innerWidth < 640 ? 'bottom' : 'top'
-                          }
-                        }
-                      }}
-                    />
+                {/* Charts Grid */}
+                <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                  {/* Monthly Overview */}
+                  <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-4 sm:p-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Overview</h3>
+                      <div className="h-[300px] sm:h-[400px]">
+                        <Bar
+                          data={monthlyOverviewConfig.data}
+                          options={{
+                            ...monthlyOverviewConfig.options,
+                            plugins: {
+                              ...monthlyOverviewConfig.options.plugins,
+                              legend: {
+                                ...monthlyOverviewConfig.options.plugins.legend,
+                                position: window.innerWidth < 640 ? 'bottom' : 'top'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cash Balance Trend */}
+                  <div className="lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div className="p-4 sm:p-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Cash Balance Trend</h3>
+                      <div className="h-[300px] sm:h-[400px]">
+                        <Line
+                          data={balanceChartData}
+                          options={{
+                            ...balanceChartOptions,
+                            plugins: {
+                              ...balanceChartOptions.plugins,
+                              legend: {
+                                ...balanceChartOptions.plugins.legend,
+                                position: window.innerWidth < 640 ? 'bottom' : 'top'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Distribution Charts */}
+                  {[
+                    { title: 'Income Categories', data: incomeDoughnutChartData },
+                    { title: 'Expense Categories', data: expenseDoughnutChartData }
+                  ].map((chart, index) => (
+                    <div key={index} className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-4 sm:p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">{chart.title}</h3>
+                        <div className="h-[300px] sm:h-[350px]">
+                          <Doughnut data={chart.data} options={doughnutChartOptions} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Savings Breakdown */}
+                  <div className="lg:col-span-2">
+                    <SavingsBreakdown netBalance={yearSummary.netBalance} />
                   </div>
                 </div>
-              </div>
-
-              {/* Category Distribution Charts */}
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Income Categories</h3>
-                  <div className="h-[300px] sm:h-[350px]">
-                    <Doughnut data={incomeDoughnutChartData} options={doughnutChartOptions} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <div className="p-4 sm:p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Expense Categories</h3>
-                  <div className="h-[300px] sm:h-[350px]">
-                    <Doughnut data={expenseDoughnutChartData} options={doughnutChartOptions} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Savings Breakdown */}
-              <div className="lg:col-span-2">
-                <SavingsBreakdown netBalance={yearSummary.netBalance} />
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </div>
