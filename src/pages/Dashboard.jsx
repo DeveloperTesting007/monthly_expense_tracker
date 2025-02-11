@@ -191,23 +191,25 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Menu Overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-20 lg:hidden ${isMobileMenuOpen ? 'block' : 'hidden'
+        className={`fixed inset-0 bg-black/50 z-[60] lg:hidden ${isMobileMenuOpen ? 'block' : 'hidden'
           }`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Sidebar */}
-      <Sidebar
-        isMobileOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+      {/* Sidebar - Updated z-index */}
+      <div className="fixed inset-y-0 left-0 z-[70] lg:static">
+        <Sidebar
+          isMobileOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+      </div>
 
-      {/* Main Content - Updated max width and padding */}
+      {/* Main Content - Adjusted z-index hierarchy */}
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
             {/* Updated Header Section */}
-            <div className="sticky top-0 z-40 bg-gray-50/95 backdrop-blur-sm mb-6">
+            <div className="sticky top-0 z-50 bg-gray-50/95 backdrop-blur-sm mb-6">
               <div className="flex flex-col sm:flex-row gap-4 py-3 items-center justify-between">
                 {/* Title Section */}
                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -242,7 +244,7 @@ export default function Dashboard() {
             </div>
 
             {/* Rest of content with adjusted z-index */}
-            <div className="relative z-30">
+            <div className="relative z-40">
               {/* Summary Cards */}
               <div className="mb-8">
                 <SummaryCards
