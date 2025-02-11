@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageProvider';
-import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categoryService';
+import * as categoryService from '../services/categoryService';
 import { MdAdd, MdEdit, MdDelete, MdFilterList } from 'react-icons/md';
-import { db } from '../config/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 // Type definitions
 const INITIAL_CATEGORY = {
@@ -102,6 +100,20 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, on
     return (
         <div className="bg-white">
             <form onSubmit={handleSubmit} className="space-y-4">
+                {editingCategory && (
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                            Category ID
+                        </label>
+                        <input
+                            type="text"
+                            value={editingCategory.category_id || ''}
+                            disabled
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                        />
+                        <p className="text-xs text-gray-500">Category ID cannot be changed</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
@@ -258,7 +270,7 @@ export default function CategorySettings({
 
         try {
             setState(prev => ({ ...prev, isLoading: true }));
-            const categoriesData = await getCategories();
+            const categoriesData = await categoryService.getCategories(currentUser.uid);
 
             // Convert categories object to array
             const categoriesArray = Object.entries(categoriesData).reduce((acc, [type, categories]) => {
@@ -325,7 +337,7 @@ export default function CategorySettings({
                     updatedAt: new Date()
                 };
 
-                await addCategory(currentUser.uid, categoryData);
+                await categoryService.addCategory(currentUser.uid, categoryData);
                 showMessage('Category added successfully', 'success');
                 resetForm();
                 await loadCategories();
@@ -362,11 +374,11 @@ export default function CategorySettings({
         try {
             if (categoryData.id) {
                 // Update existing category
-                await categoryService.updateCategory(categoryData.id, categoryData);
+                await categoryService.updateCategory(currentUser.uid, categoryData.id, categoryData);
                 showMessage('Category updated successfully', 'success');
             } else {
                 // Add new category
-                await categoryService.addCategory(categoryData);
+                await categoryService.addCategory(currentUser.uid, categoryData);
                 showMessage('Category added successfully', 'success');
             }
 
@@ -438,7 +450,7 @@ export default function CategorySettings({
         setError(null);
 
         try {
-            await updateCategory(editingCategory.id, {
+            await categoryService.updateCategory(currentUser.uid, editingCategory.id, {
                 ...editingCategory,
                 name: editingCategory.name.trim(),
                 type: editingCategory.type.toLowerCase(),
@@ -468,7 +480,7 @@ export default function CategorySettings({
         setError(null);
 
         try {
-            await categoryService.deleteCategory(categoryId);
+            await categoryService.deleteCategory(currentUser.uid, categoryId);
             showMessage('Category deleted successfully', 'success');
             await loadCategories();
         } catch (error) {
@@ -500,21 +512,19 @@ export default function CategorySettings({
 
             switch (action) {
                 case 'add':
-                    await addCategory(currentUser.uid, categoryData);
-                    showMessage('Category added successfully', 'success');
+                    await categoryService.addCategory(currentUser.uid, categoryData);
                     break;
                 case 'update':
-                    await updateCategory(categoryData.id, categoryData);
-                    showMessage('Category updated successfully', 'success');
+                    await categoryService.updateCategory(currentUser.uid, categoryData.id, categoryData);
                     break;
                 case 'delete':
-                    await deleteCategory(categoryData.id);
-                    showMessage('Category deleted successfully', 'success');
+                    await categoryService.deleteCategory(currentUser.uid, categoryData.id);
                     break;
                 default:
                     throw new Error('Invalid action');
             }
 
+            showMessage(`Category ${action}ed successfully`, 'success');
             if (onSuccess) onSuccess();
             resetForm();
         } catch (error) {
