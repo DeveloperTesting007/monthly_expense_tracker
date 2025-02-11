@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
     EnvelopeIcon,
     LockClosedIcon,
@@ -18,13 +18,24 @@ export default function Login() {
     const { login, signInWithGoogle } = useAuth();
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
+    const location = useLocation();
+
+    useEffect(() => {
+        // Clear any expired session messages
+        const params = new URLSearchParams(location.search);
+        if (params.get('expired') === 'true') {
+            // Session expired message is handled by AuthContext
+        }
+    }, [location]);
 
     async function handleSubmit(e) {
         e.preventDefault();
         try {
             setLoading(true);
             await login(email, password);
-            navigate('/dashboard');  // Changed from '/' to '/dashboard'
+            // Redirect to the page they tried to visit or dashboard
+            const intendedPath = location.state?.from?.pathname || '/dashboard';
+            navigate(intendedPath);
         } catch (err) {
             // Error is handled in AuthContext
         } finally {

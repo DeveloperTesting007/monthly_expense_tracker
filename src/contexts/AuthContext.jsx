@@ -28,7 +28,20 @@ export function AuthProvider({ children }) {
     const { showMessage } = useMessage();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Check token expiry
+                const token = await user.getIdTokenResult();
+                const expirationTime = new Date(token.expirationTime).getTime();
+                const now = new Date().getTime();
+
+                if (expirationTime <= now) {
+                    // Token expired, force logout
+                    await logout();
+                    showMessage('Session expired. Please login again.', 'warning');
+                    return;
+                }
+            }
             setCurrentUser(user);
             setLoading(false);
         });
@@ -91,6 +104,16 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const forceLogout = async () => {
+        try {
+            await signOut(auth);
+            setCurrentUser(null);
+            showMessage('Session expired. Please login again.', 'warning');
+        } catch (error) {
+            console.error('Force logout error:', error);
+        }
+    };
+
     const signInWithGoogle = async () => {
         try {
             const result = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -134,6 +157,7 @@ export function AuthProvider({ children }) {
         signup,
         login,
         logout,
+        forceLogout, // Add forceLogout to context
         loading,
         signInWithGoogle
     };
