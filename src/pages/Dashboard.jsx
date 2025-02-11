@@ -6,6 +6,13 @@ import TransactionForm from '../components/TransactionForm';
 import RecentTransactions from '../components/RecentTransactions';
 import SummaryCards from '../components/SummaryCards';
 import { addTransaction, getRecentTransactions, getAllTransactions } from '../services/transactionService';
+import DateSelector from '../components/DateSelector';
+
+// Add this utility function at the top after imports
+const getCurrentMonth = () => {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -25,7 +32,8 @@ export default function Dashboard() {
     dateRange: 'all',
     searchQuery: '',
     sortBy: 'date',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    selectedMonth: getCurrentMonth() // Initialize with current month
   });
   const [showFilters, setShowFilters] = useState(false);
   const [allTransactions, setAllTransactions] = useState([]);
@@ -114,6 +122,16 @@ export default function Dashboard() {
           return false;
         }
 
+        // Month filter
+        if (filters.selectedMonth) {
+          const transactionDate = new Date(transaction.date);
+          const [year, month] = filters.selectedMonth.split('-');
+          if (transactionDate.getFullYear() !== parseInt(year) || 
+              transactionDate.getMonth() !== parseInt(month) - 1) {
+            return false;
+          }
+        }
+
         // Date range filter
         if (filters.dateRange !== 'all') {
           const transactionDate = new Date(transaction.date);
@@ -157,6 +175,18 @@ export default function Dashboard() {
 
   const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage);
 
+  // Add this new function to filter transactions by month
+  const getFilteredTransactionsByMonth = (transactions, selectedMonth) => {
+    if (!selectedMonth) return transactions;
+    
+    return transactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      const [year, month] = selectedMonth.split('-');
+      return transactionDate.getFullYear() === parseInt(year) && 
+             transactionDate.getMonth() === parseInt(month) - 1;
+    });
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Menu Overlay */}
@@ -176,9 +206,9 @@ export default function Dashboard() {
       <div className="flex-1 lg:ml-64">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
-            {/* Updated Mobile Header */}
+            {/* Updated Header with Date Selector */}
             <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm mb-6">
-              <div className="flex items-center justify-between py-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between py-4">
                 <div className="flex items-center gap-3">
                   <button
                     className="lg:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -191,26 +221,29 @@ export default function Dashboard() {
                   </button>
                   <div>
                     <h1 className="text-xl font-bold text-gray-800 sm:text-2xl">
-                      Welcome Back!
+                      Financial Overview
                     </h1>
                     <p className="text-sm text-gray-600 hidden sm:block">
-                      Here's your financial overview
+                      Track your income and expenses
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Mobile Subheader - Only visible on smallest screens */}
-              <div className="sm:hidden -mt-2 pb-4">
-                <p className="text-sm text-gray-600">Here's your financial overview</p>
+                
+                {/* Single Date Selector */}
+                <DateSelector
+                  value={filters.selectedMonth}
+                  onChange={(value) => handleFilterChange('selectedMonth', value)}
+                  className="min-w-[200px]"
+                />
               </div>
             </div>
 
-            {/* Summary Cards - Updated grid for larger screens */}
+            {/* Update Summary Cards - use filters.selectedMonth */}
             <div className="mb-8">
               <SummaryCards 
-                transactions={allTransactions} 
+                transactions={getFilteredTransactionsByMonth(allTransactions, filters.selectedMonth)} 
                 isLoading={isLoadingAllTransactions}
+                selectedMonth={filters.selectedMonth}
               />
             </div>
 

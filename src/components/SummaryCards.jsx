@@ -1,7 +1,13 @@
 import React from 'react';
 import { MdArrowUpward, MdArrowDownward, MdAccountBalance } from 'react-icons/md';
 
-export default function SummaryCards({ transactions }) {
+export default function SummaryCards({ transactions, selectedMonth }) {
+  const formatMonthYear = (dateString) => {
+    if (!dateString) return '';
+    const [year, month] = dateString.split('-');
+    return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
   const totalIncome = transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -41,7 +47,14 @@ export default function SummaryCards({ transactions }) {
           className={`bg-gradient-to-r ${card.className} rounded-lg p-3 sm:p-4 lg:p-6 text-white shadow-lg`}
         >
           <div className="flex justify-between items-center mb-2 sm:mb-3 lg:mb-4">
-            <h3 className="text-sm sm:text-base lg:text-lg font-semibold">{card.title}</h3>
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold">
+              {card.title}
+              {card.title === 'Total Balance' && selectedMonth && (
+                <span className="text-xs text-gray-400 ml-1">
+                  ({formatMonthYear(selectedMonth)})
+                </span>
+              )}
+            </h3>
             <div className="p-1 sm:p-1.5 lg:p-2 bg-white/20 rounded-lg">
               {card.icon}
             </div>
