@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageProvider';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categoryService';
 import { MdAdd, MdEdit, MdDelete, MdFilterList } from 'react-icons/md';
+import { db } from '../config/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 // Type definitions
 const INITIAL_CATEGORY = {
@@ -360,25 +362,18 @@ export default function CategorySettings({
         try {
             if (categoryData.id) {
                 // Update existing category
-                await updateCategory(categoryData.id, {
-                    ...categoryData,
-                    updatedAt: new Date()
-                });
+                await categoryService.updateCategory(categoryData.id, categoryData);
                 showMessage('Category updated successfully', 'success');
             } else {
                 // Add new category
-                await addCategory(currentUser.uid, {
-                    ...categoryData,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                });
+                await categoryService.addCategory(categoryData);
                 showMessage('Category added successfully', 'success');
             }
 
             await loadCategories();
             if (onSuccess) onSuccess();
         } catch (error) {
-            const message = error.response?.data?.message || 
+            const message = error.message || 
                 (categoryData.id ? ERROR_MESSAGES.UPDATE_ERROR : ERROR_MESSAGES.ADD_ERROR);
             showMessage(message, 'error');
             setError(message);
@@ -473,11 +468,11 @@ export default function CategorySettings({
         setError(null);
 
         try {
-            await deleteCategory(categoryId);
+            await categoryService.deleteCategory(categoryId);
             showMessage('Category deleted successfully', 'success');
             await loadCategories();
         } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.DELETE_ERROR;
+            const message = error.message || ERROR_MESSAGES.DELETE_ERROR;
             showMessage(message, 'error');
             setError(message);
         } finally {

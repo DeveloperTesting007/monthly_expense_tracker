@@ -49,6 +49,7 @@ export default function Categories() {
     const handleEditSuccess = () => {
         setEditingCategory(null);
         handleRefresh();
+        document.querySelector('#categoryList').scrollIntoView({ behavior: 'smooth' });
     };
 
     return (
@@ -155,7 +156,7 @@ export default function Categories() {
                             </div>
 
                             {/* List Section */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div id="categoryList" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                 <div className="border-b border-gray-200">
                                     <div className="px-6 py-4">
                                         <div className="flex justify-between items-center mb-4">
