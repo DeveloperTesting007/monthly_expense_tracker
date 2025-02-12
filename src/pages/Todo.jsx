@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { db } from '../config/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,82 +6,23 @@ import { MdCheckCircle, MdPending, MdAssignment, MdFlag, MdRefresh } from 'react
 import TodoList from '../components/TodoList';
 import Sidebar from '../components/Sidebar';
 
+// Add constants outside component
+const DEFAULT_STATS = {
+    total: 0,
+    completed: 0,
+    pending: 0,
+    urgent: 0,
+    details: { pending: 0, inProgress: 0 }
+};
+
 export default function Todo() {
-    const [stats, setStats] = useState({
-        total: 0,
-        completed: 0,
-        pending: 0,
-        urgent: 0
-    });
+    const [stats, setStats] = useState(DEFAULT_STATS);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { currentUser } = useAuth();
 
-    // Add effect to fetch stats on mount
-    useEffect(() => {
-        if (currentUser) {
-            fetchTodoStats();
-        }
-    }, [currentUser]);
-
-    const fetchTodoStats = async () => {
-        setIsLoading(true);
-        try {
-            const q = query(
-                collection(db, 'todos'),
-                where('userId', '==', currentUser.uid)
-            );
-            const querySnapshot = await getDocs(q);
-            const todos = querySnapshot.docs.map(doc => doc.data());
-
-            // Calculate status counts
-            const statusCounts = todos.reduce((acc, todo) => {
-                if (todo.completed) {
-                    acc.completed++;
-                } else {
-                    switch (todo.status) {
-                        case 'pending':
-                            acc.pending++;
-                            break;
-                        case 'in-progress':
-                            acc.inProgress++;
-                            break;
-                        case 'urgent':
-                            acc.urgent++;
-                            break;
-                    }
-                }
-                return acc;
-            }, { completed: 0, pending: 0, inProgress: 0, urgent: 0 });
-
-            setStats({
-                total: todos.length,
-                completed: statusCounts.completed,
-                pending: statusCounts.pending + statusCounts.inProgress, // Combine pending and in-progress
-                urgent: statusCounts.urgent,
-                // Add detailed counts for UI
-                details: {
-                    pending: statusCounts.pending,
-                    inProgress: statusCounts.inProgress
-                }
-            });
-            setError(null);
-        } catch (error) {
-            console.error('Error fetching todo stats:', error);
-            setError('Failed to load todo statistics. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Add manual refresh function
-    const handleRefresh = () => {
-        fetchTodoStats();
-    };
-
-    // Update statsCards definitions with more descriptive labels
-    const statsCards = [
+    const statsCards = useMemo(() => [
         {
             title: 'Total Tasks',
             value: stats.total,
@@ -104,9 +45,7 @@ export default function Todo() {
             icon: <MdPending className="w-8 h-8 text-yellow-500" />,
             bgColor: 'bg-yellow-50',
             textColor: 'text-yellow-600',
-            description: stats.details ?
-                `${stats.details.pending} pending, ${stats.details.inProgress} in progress` :
-                'Active tasks'
+            description: `${stats.details.pending} pending, ${stats.details.inProgress} in progress`
         },
         {
             title: 'Urgent',
@@ -116,7 +55,62 @@ export default function Todo() {
             textColor: 'text-red-600',
             description: 'High priority tasks'
         }
-    ];
+    ], [stats]);
+
+    const fetchTodoStats = useCallback(async () => {
+        if (!currentUser?.uid) return;
+
+        setIsLoading(true);
+        try {
+            const q = query(
+                collection(db, 'todos'),
+                where('userId', '==', currentUser.uid)
+            );
+            const querySnapshot = await getDocs(q);
+            const todos = querySnapshot.docs.map(doc => doc.data());
+
+            const statusCounts = todos.reduce((acc, todo) => {
+                if (todo.completed) {
+                    acc.completed++;
+                } else {
+                    switch (todo.status) {
+                        case 'pending': acc.pending++; break;
+                        case 'in-progress': acc.inProgress++; break;
+                        case 'urgent': acc.urgent++; break;
+                    }
+                }
+                return acc;
+            }, { completed: 0, pending: 0, inProgress: 0, urgent: 0 });
+
+            setStats({
+                total: todos.length,
+                completed: statusCounts.completed,
+                pending: statusCounts.pending + statusCounts.inProgress,
+                urgent: statusCounts.urgent,
+                details: {
+                    pending: statusCounts.pending,
+                    inProgress: statusCounts.inProgress
+                }
+            });
+            setError(null);
+        } catch (error) {
+            console.error('Error fetching todo stats:', error);
+            setError('Failed to load statistics');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentUser?.uid]);
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchTodoStats();
+        }
+    }, [currentUser, fetchTodoStats]);
+
+    // Add manual refresh function
+    const handleRefresh = () => {
+        fetchTodoStats();
+    };
 
     return (
         <div className="flex min-h-screen bg-gray-50">
