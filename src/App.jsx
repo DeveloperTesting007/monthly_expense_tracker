@@ -9,7 +9,7 @@ import PrivateRoute from './routes/PrivateRoute.jsx';
 import AddTransaction from './pages/AddTransaction.jsx';
 import Reports from './pages/Reports.jsx';
 import Categories from './pages/Categories';
-import CategorySettings from './components/CategorySettings';
+import Todo from './pages/Todo';
 
 function App() {
   return (
@@ -43,6 +43,12 @@ function App() {
                   <Categories />
                 </PrivateRoute>
               } />
+              <Route path="/todo" element={
+                <PrivateRoute>
+                  <Todo />
+                </PrivateRoute>
+              } />
+
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
