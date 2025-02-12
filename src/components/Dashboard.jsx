@@ -27,7 +27,4 @@ export default function Dashboard() {
 
         fetchTransactions();
     }, [currentUser]);
-
-    // Rest of your dashboard component code
-    // ...existing code...
 }
