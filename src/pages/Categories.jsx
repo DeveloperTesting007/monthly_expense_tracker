@@ -11,7 +11,7 @@ import AddCategoryFAB from '../components/AddCategoryFAB';
 export default function Categories() {
     const { currentUser } = useAuth();
     const { showMessage } = useMessage();
-    
+
     // Add categories state
     const [categories, setCategories] = useState({ expense: [], income: [] });
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -23,19 +23,6 @@ export default function Categories() {
     const [itemsPerPage] = useState(10);
     const [editingCategory, setEditingCategory] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
-
-    const handleRefresh = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            await loadCategories();
-        } catch (err) {
-            setError(err.message);
-            showMessage('Failed to refresh categories', 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const loadCategories = async () => {
         if (!currentUser) {
@@ -75,6 +62,7 @@ export default function Categories() {
 
     const handleEdit = (category) => {
         setEditingCategory(category);
+        setShowAddModal(true); // Reuse the add modal for editing
     };
 
     const handleCancelEdit = () => {
@@ -107,28 +95,43 @@ export default function Categories() {
         }
     };
 
-    const handleUpdateCategory = async (categoryData) => {
-        if (!currentUser) return;
+    const handleUpdateCategory = async (categoryId, updatedData) => {
+        if (!currentUser) {
+            showMessage('Please login to update categories', 'error');
+            return;
+        }
 
+        setIsLoading(true);
         try {
-            await categoryService.updateCategory(currentUser.uid, categoryData.id, categoryData);
+            await categoryService.updateCategory(currentUser.uid, categoryId, updatedData);
             showMessage('Category updated successfully', 'success');
-            setEditingCategory(null);
             await loadCategories();
+            setEditingCategory(null);
+            setShowAddModal(false);
         } catch (error) {
-            showMessage(error.message, 'error');
+            console.error('Update category error:', error);
+            showMessage(error.message || 'Failed to update category', 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleDeleteCategory = async (categoryId) => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            showMessage('Please login to delete categories', 'error');
+            return;
+        }
 
+        setIsLoading(true);
         try {
             await categoryService.deleteCategory(currentUser.uid, categoryId);
             showMessage('Category deleted successfully', 'success');
-            await loadCategories();
+            await loadCategories(); // Refresh the categories list
         } catch (error) {
+            console.error('Delete category error:', error);
             showMessage(error.message, 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -201,16 +204,8 @@ export default function Categories() {
                                                     View and manage your categories
                                                 </p>
                                             </div>
-                                            <button
-                                                onClick={handleRefresh}
-                                                disabled={isLoading}
-                                                className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
-                                                aria-label="Refresh categories"
-                                            >
-                                                <MdRefresh className={`w-5 h-5 text-gray-600 ${isLoading ? 'animate-spin' : ''}`} />
-                                            </button>
                                         </div>
-                                        
+
                                         <div className="flex flex-col sm:flex-row gap-4">
                                             <div className="flex-1 relative">
                                                 <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -239,15 +234,15 @@ export default function Categories() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-6">
                                     {error && (
                                         <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
                                             {error}
                                         </div>
                                     )}
-                                    <CategorySettings 
-                                        showOnlyList={true} 
+                                    <CategorySettings
+                                        showOnlyList={true}
                                         categories={categories} // Add this prop
                                         isLoading={isLoading}
                                         onEdit={handleEdit}
@@ -288,12 +283,12 @@ export default function Categories() {
                 </div>
             </div>
 
-            {/* Add Category Modal */}
+            {/* Add/Edit Category Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
                         {/* Backdrop */}
-                        <div 
+                        <div
                             className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
                             onClick={toggleAddModal}
                         />
@@ -301,10 +296,17 @@ export default function Categories() {
                         {/* Modal Panel */}
                         <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                             <CategoryForm
-                                onSubmit={handleAddCategory}
+                                onSubmit={(data) => {
+                                    if (editingCategory) {
+                                        handleUpdateCategory(editingCategory.id, data);
+                                    } else {
+                                        handleAddCategory(data);
+                                    }
+                                }}
                                 onCancel={toggleAddModal}
                                 isSubmitting={isLoading}
-                                title="Add New Category"
+                                initialData={editingCategory}
+                                title={editingCategory ? "Edit Category" : "Add New Category"}
                             />
                         </div>
                     </div>

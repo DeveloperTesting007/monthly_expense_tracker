@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MdClose, MdTrendingUp, MdTrendingDown } from 'react-icons/md';
 import { 
     CATEGORY_TYPES, 
-    CATEGORY_STATUS, 
-    ERROR_MESSAGES,
-    DEFAULT_CATEGORY 
-} from '../../constants/categoryConstants';
+    CATEGORY_STATUS} from '../../constants/categoryConstants';
 
 const TypeButton = ({ type, selected, onClick, icon: Icon, disabled }) => (
     <button

@@ -1,16 +1,17 @@
 import { db } from '../config/firebase';
-import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    doc, 
-    updateDoc, 
-    deleteDoc, 
-    query, 
-    where, 
+import {
+    collection,
+    addDoc,
+    getDocs,
+    doc,
+    updateDoc,
+    deleteDoc,
+    query,
+    where,
     serverTimestamp,
     orderBy,
-    getDoc
+    getDoc,
+    limit
 } from 'firebase/firestore';
 
 // Add utility function to generate category_id
@@ -37,7 +38,7 @@ export const addCategory = async (userId, categoryData) => {
             where('category_id', '==', category_id),
             where('userId', '==', userId)
         );
-        
+
         const duplicateSnapshot = await getDocs(duplicateQuery);
         if (!duplicateSnapshot.empty) {
             throw new Error('A category with this name and type already exists');
@@ -67,7 +68,7 @@ export const addCategory = async (userId, categoryData) => {
 // Update getCategories to include userId
 export const getCategories = async (userId) => {
     if (!userId) throw new Error('User ID is required');
-    
+
     try {
         const categoriesRef = collection(db, 'categories');
         // Create a simpler query first
@@ -75,7 +76,7 @@ export const getCategories = async (userId) => {
             categoriesRef,
             where('userId', '==', userId)
         );
-        
+
         const snapshot = await getDocs(q);
         const categories = {
             expense: [],
@@ -114,35 +115,32 @@ export const updateCategory = async (userId, categoryId, categoryData) => {
     if (!categoryId) throw new Error('Category ID is required');
 
     try {
-        const newCategoryId = generateCategoryId(categoryData.type, categoryData.name);
+        // Reference the category document directly in the categories collection
+        const categoryRef = doc(db, 'categories', categoryId);
 
-        // Check for duplicates excluding current document
-        const duplicateQuery = query(
-            collection(db, 'categories'),
-            where('category_id', '==', newCategoryId),
-            where('userId', '==', userId)
-        );
-        
-        const duplicateSnapshot = await getDocs(duplicateQuery);
-        const hasDuplicate = duplicateSnapshot.docs.some(doc => doc.id !== categoryId);
-        
-        if (hasDuplicate) {
-            throw new Error('A category with this name and type already exists');
+        // Verify ownership before updating
+        const categorySnap = await getDoc(categoryRef);
+        if (!categorySnap.exists()) {
+            throw new Error('Category not found');
         }
 
+        if (categorySnap.data().userId !== userId) {
+            throw new Error('You do not have permission to update this category');
+        }
+
+        // Prepare update data
         const updateData = {
-            ...categoryData,
-            category_id: newCategoryId,
-            userId,
+            name: categoryData.name.trim(),
+            type: categoryData.type.toLowerCase(),
+            status: categoryData.status || 'active',
             updatedAt: serverTimestamp()
         };
 
-        const categoryRef = doc(db, 'categories', categoryId);
         await updateDoc(categoryRef, updateData);
-        return { id: categoryId, ...updateData };
+        return { id: categoryId, ...updateData, userId };
     } catch (error) {
-        console.error('Update category error:', error);
-        throw new Error('Failed to update category');
+        console.error('Error updating category:', error);
+        throw new Error(error.message || 'Failed to update category');
     }
 };
 
@@ -152,17 +150,39 @@ export const deleteCategory = async (userId, categoryId) => {
     if (!categoryId) throw new Error('Category ID is required');
 
     try {
-        // Verify ownership before deleting
+        // Get the category reference
         const categoryRef = doc(db, 'categories', categoryId);
+
+        // Verify ownership before deleting
         const categorySnap = await getDoc(categoryRef);
-        
-        if (!categorySnap.exists() || categorySnap.data().userId !== userId) {
-            throw new Error('Category not found or access denied');
+        if (!categorySnap.exists()) {
+            throw new Error('Category not found');
         }
 
+        const categoryData = categorySnap.data();
+        if (categoryData.userId !== userId) {
+            throw new Error('You do not have permission to delete this category');
+        }
+
+        // Check if category is being used in any transactions
+        const transactionsRef = collection(db, 'transactions');
+        const transactionsQuery = query(
+            transactionsRef,
+            where('categoryId', '==', categoryId),
+            where('userId', '==', userId),
+            limit(1)
+        );
+
+        const transactionsSnap = await getDocs(transactionsQuery);
+        if (!transactionsSnap.empty) {
+            throw new Error('Cannot delete category because it is being used in transactions');
+        }
+
+        // Perform the deletion
         await deleteDoc(categoryRef);
+        return { success: true, message: 'Category deleted successfully' };
     } catch (error) {
         console.error('Delete category error:', error);
-        throw new Error('Failed to delete category');
+        throw new Error(error.message || 'Failed to delete category');
     }
 };
