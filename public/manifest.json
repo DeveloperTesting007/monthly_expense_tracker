@@ -1,0 +1,20 @@
+{
+    "name": "Monthly Expense Tracker",
+    "short_name": "Expenses",
+    "icons": [
+        {
+            "src": "../src/assets/money.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "../src/assets/money.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ECEFF1",
+    "theme_color": "#ffa100"
+}
