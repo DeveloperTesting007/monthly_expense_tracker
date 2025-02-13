@@ -771,12 +771,12 @@ export default function TodoList({ onUpdate, autoLoad = true }) {
     }, [loadingTodoId, updateTodoStatus]); // Update dependencies
 
     return (
-        <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 relative h-screen flex flex-col">
+        <div className="w-full max-w-5xl mx-auto px-4 sm:px-5 py-6 relative h-screen flex flex-col">
             {isLoading && <LoadingOverlay />}
 
             {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 
-                    rounded-2xl flex items-center justify-between shadow-sm flex-shrink-0">
+                <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 
+                    rounded-xl flex items-center justify-between shadow-sm flex-shrink-0">
                     <span className="flex items-center gap-2">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -791,9 +791,9 @@ export default function TodoList({ onUpdate, autoLoad = true }) {
                 </div>
             )}
 
-            <div className="flex flex-col gap-4 sm:gap-6 mb-8 flex-shrink-0">
+            <div className="flex flex-col gap-4 mb-6 flex-shrink-0">
                 {/* Filter and Sort Section */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
                     <div className="flex items-center gap-3 flex-1">
                         <button
                             onClick={handleRefresh}
@@ -848,45 +848,45 @@ export default function TodoList({ onUpdate, autoLoad = true }) {
                 </div>
 
                 {/* Add Todo Form */}
-                <form onSubmit={handleAddTodo} className="flex gap-3">
+                <form onSubmit={handleAddTodo} className="flex gap-2">
                     <input
                         type="text"
                         value={newTodo}
                         onChange={(e) => setNewTodo(e.target.value)}
                         placeholder="Add a new task..."
-                        className="flex-grow p-4 border rounded-xl text-sm shadow-sm
+                        className="flex-grow p-3 border rounded-xl text-sm shadow-sm
                             focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 
                             transition-all duration-200"
                     />
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="p-4 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 
+                        className="p-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 
                             transition-all duration-200 shadow-sm hover:shadow-md 
                             disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <MdAdd className="w-6 h-6" />
+                        <MdAdd className="w-5 h-5" />
                     </button>
                 </form>
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0 rounded-xl scrollbar-thin scrollbar-thumb-gray-200 
-                scrollbar-track-transparent hover:scrollbar-thumb-gray-300 pr-2">
-                <div className="space-y-4 pb-4">
+                scrollbar-track-transparent hover:scrollbar-thumb-gray-300 pr-1">
+                <div className="space-y-3 pb-3">
                     {getSortedAndFilteredTodos().map(todo => (
                         <TodoItem key={todo.id} todo={todo} />
                     ))}
 
                     {todos.length === 0 && (
-                        <div className="text-center py-16 px-4">
-                            <div className="mx-auto h-16 w-16 text-gray-400 mb-6 
+                        <div className="text-center py-12 px-4">
+                            <div className="mx-auto h-14 w-14 text-gray-400 mb-4 
                                 bg-gray-50 rounded-full flex items-center justify-center">
                                 <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                                         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </div>
-                            <h3 className="text-base font-medium text-gray-900 mb-2">No tasks yet</h3>
+                            <h3 className="text-base font-medium text-gray-900 mb-1">No tasks yet</h3>
                             <p className="text-sm text-gray-500 max-w-sm mx-auto">
                                 Get started by creating your first task. Your tasks will appear here.
                             </p>
