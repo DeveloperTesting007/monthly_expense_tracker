@@ -703,19 +703,6 @@ export default function TodoList({ onUpdate, autoLoad = true }) {
                             </svg>
                         </button>
                         <button
-                            onClick={() => {
-                                setActionLoadingId(todo.id);
-                                setActionType('edit');
-                                startEditing(todo);
-                            }}
-                            disabled={isLoading}
-                            className="p-2 text-blue-500 hover:text-blue-600 rounded-xl 
-                                hover:bg-blue-50 transition-all duration-200
-                                disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading && actionType === 'edit' ? loadingSpinner : <MdEdit className="w-4 h-4 sm:w-5 sm:h-5" />}
-                        </button>
-                        <button
                             onClick={() => handleDelete(todo)}
                             disabled={isLoading}
                             className="p-2 text-red-500 hover:text-red-600 rounded-xl 
