@@ -75,10 +75,44 @@ const DeleteConfirmDialog = ({ todo, onConfirm, onCancel }) => (
     </div>
 );
 
-const TodoDetails = ({ todo, onClose, updateTodoStatus, formatDate, updateDoc, db, fetchTodos }) => {
-    const [localDueDate, setLocalDueDate] = useState(todo.dueDate || '');
-    const [localNotes, setLocalNotes] = useState(todo.notes || '');
+const TodoDetails = ({ todo: initialTodo, onClose, updateTodoStatus, formatDate, updateDoc, db, fetchTodos }) => {
+    const [localDueDate, setLocalDueDate] = useState(initialTodo.dueDate || '');
+    const [localNotes, setLocalNotes] = useState(initialTodo.notes || '');
     const [isSaving, setIsSaving] = useState(false);
+    const [loadingStatus, setLoadingStatus] = useState(null);
+    const [lastUpdatedStatus, setLastUpdatedStatus] = useState(null);
+    const [focusTimeout, setFocusTimeout] = useState(null);
+    const [todo, setTodo] = useState(initialTodo);
+
+    useEffect(() => {
+        return () => {
+            if (focusTimeout) clearTimeout(focusTimeout);
+        };
+    }, [focusTimeout]);
+
+    const handleStatusUpdate = async (newStatus) => {
+        if (newStatus === todo.status) return;
+
+        setLoadingStatus(newStatus);
+        try {
+            // Update local state immediately
+            setTodo(prev => ({
+                ...prev,
+                status: newStatus,
+                completed: newStatus === 'completed'
+            }));
+
+            await updateTodoStatus(todo.id, newStatus);
+            setLastUpdatedStatus(newStatus);
+            // Clear the last updated status after 2 seconds
+            const timeout = setTimeout(() => {
+                setLastUpdatedStatus(null);
+            }, 2000);
+            setFocusTimeout(timeout);
+        } finally {
+            setLoadingStatus(null);
+        }
+    };
 
     const handleDueDateChange = async (e) => {
         const newDate = e.target.value;
@@ -156,17 +190,35 @@ const TodoDetails = ({ todo, onClose, updateTodoStatus, formatDate, updateDoc, d
                             {STATUS_OPTIONS.map(option => (
                                 <button
                                     key={option.value}
-                                    onClick={() => updateTodoStatus(todo.id, option.value)}
+                                    onClick={() => handleStatusUpdate(option.value)}
+                                    disabled={loadingStatus !== null}
                                     className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm 
-                                    font-medium transition-all duration-200 
+                                    font-medium transition-all duration-300 relative
                                     ${todo.status === option.value
                                             ? `${option.bgColor} ${option.color}`
-                                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}
+                                    ${lastUpdatedStatus === option.value
+                                            ? 'ring-2 ring-offset-2 ring-indigo-500 scale-105'
+                                            : ''}
+                                    disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
-                                    <span className={`w-2 h-2 rounded-full mr-2 
-                                    ${todo.status === option.value ? option.color.replace('text', 'bg') : 'bg-gray-400'}`}
-                                    />
-                                    {option.label}
+                                    {loadingStatus === option.value ? (
+                                        <div className="flex items-center gap-2">
+                                            <ImSpinner8 className="w-4 h-4 animate-spin" />
+                                            <span>Updating...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span className={`w-2 h-2 rounded-full mr-2 
+                                            ${todo.status === option.value ? option.color.replace('text', 'bg') : 'bg-gray-400'}
+                                            ${lastUpdatedStatus === option.value ? 'animate-pulse' : ''}`}
+                                            />
+                                            {option.label}
+                                        </>
+                                    )}
+                                    {lastUpdatedStatus === option.value && (
+                                        <div className="absolute inset-0 bg-indigo-100/20 rounded-lg animate-pulse-fast" />
+                                    )}
                                 </button>
                             ))}
                         </div>
