@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useMessage } from '../contexts/MessageProvider';
+import * as categoryService from '../services/categoryService';
 import Sidebar from '../components/Sidebar';
 import CategorySettings from '../components/CategorySettings';
+import CategoryForm from '../components/forms/CategoryForm'; // Add this import
 import { MdMenu, MdCategory, MdRefresh, MdSearch, MdFilterList } from 'react-icons/md';
+import AddCategoryFAB from '../components/AddCategoryFAB';
 
 export default function Categories() {
+    const { currentUser } = useAuth();
+    const { showMessage } = useMessage();
+
+    // Add categories state
+    const [categories, setCategories] = useState({ expense: [], income: [] });
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -12,49 +22,121 @@ export default function Categories() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [editingCategory, setEditingCategory] = useState(null);
+    const [showAddModal, setShowAddModal] = useState(false);
 
-    const handleRefresh = async () => {
+    const loadCategories = async () => {
+        if (!currentUser) {
+            showMessage('Please login to view categories', 'error');
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
+
         try {
-            // Implement your refresh logic here
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-        } catch (err) {
-            setError(err.message);
+            const data = await categoryService.getCategories(currentUser.uid);
+            console.log('Loaded categories:', data); // Debug log
+            setCategories(data);
+        } catch (error) {
+            console.error('Load categories error:', error);
+            setError(error.message);
+            showMessage('Failed to load categories', 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
+    useEffect(() => {
+        loadCategories();
+    }, [currentUser]);
+
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
-        setCurrentPage(1); // Reset to first page when searching
+        setCurrentPage(1);
     };
 
     const handleFilterChange = (e) => {
         setFilterType(e.target.value);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1);
     };
 
     const handleEdit = (category) => {
         setEditingCategory(category);
-        // Scroll to form section
-        document.querySelector('#categoryForm').scrollIntoView({ behavior: 'smooth' });
+        setShowAddModal(true); // Reuse the add modal for editing
     };
 
     const handleCancelEdit = () => {
         setEditingCategory(null);
     };
 
-    const handleEditSuccess = () => {
-        setEditingCategory(null);
-        handleRefresh();
-        document.querySelector('#categoryList').scrollIntoView({ behavior: 'smooth' });
+    const toggleAddModal = () => {
+        setShowAddModal(prev => !prev);
+        if (editingCategory) {
+            setEditingCategory(null);
+        }
+    };
+
+    const handleAddCategory = async (categoryData) => {
+        if (!currentUser) {
+            showMessage('Please login to add categories', 'error');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await categoryService.addCategory(currentUser.uid, categoryData);
+            showMessage('Category added successfully', 'success');
+            await loadCategories();
+            toggleAddModal(); // Close modal after success
+        } catch (error) {
+            showMessage(error.message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdateCategory = async (categoryId, updatedData) => {
+        if (!currentUser) {
+            showMessage('Please login to update categories', 'error');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await categoryService.updateCategory(currentUser.uid, categoryId, updatedData);
+            showMessage('Category updated successfully', 'success');
+            await loadCategories();
+            setEditingCategory(null);
+            setShowAddModal(false);
+        } catch (error) {
+            console.error('Update category error:', error);
+            showMessage(error.message || 'Failed to update category', 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteCategory = async (categoryId) => {
+        if (!currentUser) {
+            showMessage('Please login to delete categories', 'error');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await categoryService.deleteCategory(currentUser.uid, categoryId);
+            showMessage('Category deleted successfully', 'success');
+            await loadCategories(); // Refresh the categories list
+        } catch (error) {
+            console.error('Delete category error:', error);
+            showMessage(error.message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            {/* Mobile Menu Overlay */}
             <div
                 className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-20 transition-opacity duration-300 lg:hidden
                     ${isMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -62,17 +144,14 @@ export default function Categories() {
                 aria-hidden="true"
             />
 
-            {/* Sidebar */}
             <Sidebar
                 isMobileOpen={isMobileOpen}
                 onClose={() => setIsMobileOpen(false)}
             />
 
-            {/* Main Content */}
             <div className="flex-1 lg:ml-64">
                 <div className="p-4 sm:p-6 lg:p-8">
                     <div className="max-w-6xl mx-auto">
-                        {/* Mobile Header */}
                         <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm mb-6">
                             <div className="flex items-center justify-between py-4">
                                 <div className="flex items-center gap-3">
@@ -99,14 +178,12 @@ export default function Categories() {
                                 </div>
                             </div>
 
-                            {/* Mobile Subheader */}
                             <div className="sm:hidden -mt-2 pb-4">
                                 <p className="text-sm text-gray-600">
                                     Manage your transaction categories
                                 </p>
                             </div>
 
-                            {/* Breadcrumb - Hidden on mobile */}
                             <div className="hidden sm:flex items-center space-x-4 py-3">
                                 <span className="text-gray-500">Settings</span>
                                 <span className="text-gray-400">/</span>
@@ -114,48 +191,7 @@ export default function Categories() {
                             </div>
                         </div>
 
-                        {/* Main Content */}
                         <div className="space-y-6">
-                            {/* Form Section */}
-                            <div id="categoryForm" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="p-2 bg-white/10 rounded-lg">
-                                                <MdCategory className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-lg font-semibold text-white">
-                                                    {editingCategory ? 'Edit Category' : 'Add Category'}
-                                                </h2>
-                                                <p className="text-indigo-100 text-sm">
-                                                    {editingCategory 
-                                                        ? `Editing "${editingCategory.name}"`
-                                                        : 'Create new transaction category'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {editingCategory && (
-                                            <button
-                                                onClick={handleCancelEdit}
-                                                className="px-3 py-1 text-sm text-white bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-                                            >
-                                                Cancel Edit
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="p-6">
-                                    <CategorySettings 
-                                        showOnlyForm={true} 
-                                        onSuccess={handleEditSuccess}
-                                        editingCategory={editingCategory}
-                                        onCancelEdit={handleCancelEdit}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* List Section */}
                             <div id="categoryList" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                 <div className="border-b border-gray-200">
                                     <div className="px-6 py-4">
@@ -168,17 +204,8 @@ export default function Categories() {
                                                     View and manage your categories
                                                 </p>
                                             </div>
-                                            <button
-                                                onClick={handleRefresh}
-                                                disabled={isLoading}
-                                                className="p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 disabled:opacity-50"
-                                                aria-label="Refresh categories"
-                                            >
-                                                <MdRefresh className={`w-5 h-5 text-gray-600 ${isLoading ? 'animate-spin' : ''}`} />
-                                            </button>
                                         </div>
-                                        
-                                        {/* Filter Controls */}
+
                                         <div className="flex flex-col sm:flex-row gap-4">
                                             <div className="flex-1 relative">
                                                 <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -207,28 +234,28 @@ export default function Categories() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-6">
                                     {error && (
                                         <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">
                                             {error}
                                         </div>
                                     )}
-                                    <CategorySettings 
-                                        showOnlyList={true} 
+                                    <CategorySettings
+                                        showOnlyList={true}
+                                        categories={categories} // Add this prop
                                         isLoading={isLoading}
-                                        onRefresh={handleRefresh}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDeleteCategory}
                                         searchTerm={searchTerm}
                                         filterType={filterType}
-                                        currentPage={currentPage}
-                                        itemsPerPage={itemsPerPage}
-                                        onPageChange={setCurrentPage}
-                                        onEdit={handleEdit}
-                                        editingCategoryId={editingCategory?.id}
+                                        editingCategory={editingCategory}
+                                        onCancelEdit={handleCancelEdit}
+                                        onSubmit={handleUpdateCategory}
+                                        currentUser={currentUser}
                                     />
                                 </div>
 
-                                {/* Pagination Controls */}
                                 <div className="border-t border-gray-200 px-6 py-4">
                                     <div className="flex items-center justify-between">
                                         <button
@@ -255,6 +282,42 @@ export default function Categories() {
                     </div>
                 </div>
             </div>
+
+            {/* Add/Edit Category Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 overflow-y-auto">
+                    <div className="flex min-h-screen items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                            onClick={toggleAddModal}
+                        />
+
+                        {/* Modal Panel */}
+                        <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                            <CategoryForm
+                                onSubmit={(data) => {
+                                    if (editingCategory) {
+                                        handleUpdateCategory(editingCategory.id, data);
+                                    } else {
+                                        handleAddCategory(data);
+                                    }
+                                }}
+                                onCancel={toggleAddModal}
+                                isSubmitting={isLoading}
+                                initialData={editingCategory}
+                                title={editingCategory ? "Edit Category" : "Add New Category"}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Action Button */}
+            <AddCategoryFAB
+                onClick={toggleAddModal}
+                isOpen={showAddModal}
+            />
         </div>
     );
 }

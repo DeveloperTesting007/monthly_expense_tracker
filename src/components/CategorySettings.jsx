@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageProvider';
-import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categoryService';
+import * as categoryService from '../services/categoryService';
 import { MdAdd, MdEdit, MdDelete, MdFilterList } from 'react-icons/md';
-import { db } from '../config/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 // Type definitions
 const INITIAL_CATEGORY = {
@@ -102,6 +100,20 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, on
     return (
         <div className="bg-white">
             <form onSubmit={handleSubmit} className="space-y-4">
+                {editingCategory && (
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                            Category ID
+                        </label>
+                        <input
+                            type="text"
+                            value={editingCategory.category_id || ''}
+                            disabled
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+                        />
+                        <p className="text-xs text-gray-500">Category ID cannot be changed</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
@@ -193,11 +205,11 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, on
                     >
                         {isSubmitting ? (
                             <>
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
                                     fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" 
+                                    <circle className="opacity-25" cx="12" cy="12" r="10"
                                         stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" 
+                                    <path className="opacity-75" fill="currentColor"
                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
                                 {editingCategory ? 'Updating...' : 'Creating...'}
@@ -212,545 +224,80 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, on
     );
 };
 
-export default function CategorySettings({ 
-    showOnlyForm, 
-    showOnlyList, 
-    onSuccess,
-    editingCategory,
-    onCancelEdit,
-    // ...other props
+export default function CategorySettings({
+    categories,
+    isLoading,
+    onEdit,
+    onDelete,
+    searchTerm,
+    filterType,
+    currentUser
 }) {
-    // Add error state
-    const [error, setError] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [deletingCategory, setDeletingCategory] = useState(null);
 
-    // Organized state management
-    const [state, setState] = useState({
-        categories: [], // Change to array
-        isLoading: true,
-        isSubmitting: false,
-        filter: 'all',
-        searchTerm: '',
-        showMobileFilters: false,
-    });
+    const handleEdit = (category) => {
+        setEditingId(category.id);
+        onEdit(category);
+    };
 
-    const [formState, setFormState] = useState({
-        editingCategory: null,
-        newCategory: { ...INITIAL_CATEGORY },
-        inlineEditingId: null,
-        inlineEditData: null,
-    });
+    const handleDeleteClick = (category) => {
+        if (window.confirm(`Are you sure you want to delete the category "${category.name}"? This action cannot be undone.`)) {
+            onDelete(category.id, category.category_id);
+        }
+    };
 
-    const { currentUser } = useAuth();
-    const { showMessage } = useMessage();
-
-    // Memoized filtered categories
+    // Filter categories based on search and filter type
     const filteredCategories = useMemo(() => {
-        return state.categories.filter(category => {
-            const matchesFilter = state.filter === 'all' || category.type === state.filter;
-            const matchesSearch = category.name.toLowerCase().includes(state.searchTerm.toLowerCase());
-            return matchesFilter && matchesSearch;
+        const allCategories = [...categories.expense, ...categories.income];
+        return allCategories.filter(category => {
+            const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = filterType === 'all' || category.type === filterType;
+            return matchesSearch && matchesType;
         });
-    }, [state.categories, state.filter, state.searchTerm]);
+    }, [categories, searchTerm, filterType]);
 
-    // Load categories with error handling
-    const loadCategories = useCallback(async () => {
-        if (!currentUser) return;
-
-        try {
-            setState(prev => ({ ...prev, isLoading: true }));
-            const categoriesData = await getCategories();
-
-            // Convert categories object to array
-            const categoriesArray = Object.entries(categoriesData).reduce((acc, [type, categories]) => {
-                return [...acc, ...categories.map(cat => ({
-                    ...cat,
-                    type // Ensure type is included
-                }))];
-            }, []);
-
-            setState(prev => ({
-                ...prev,
-                categories: categoriesArray,
-                isLoading: false
-            }));
-            setError(null);
-        } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.LOAD_ERROR;
-            showMessage(message, 'error');
-            setError(message);
-            setState(prev => ({ ...prev, isLoading: false }));
-        }
-    }, [currentUser, showMessage]);
-
-    useEffect(() => {
-        loadCategories();
-    }, [loadCategories]);
-
-    // Optimized form handlers
-    const handleFormChange = useCallback((field, value) => {
-        setFormState(prev => ({
-            ...prev,
-            newCategory: {
-                ...prev.newCategory,
-                [field]: value
-            }
-        }));
-    }, []);
-
-    const resetForm = useCallback(() => {
-        setFormState(prev => ({
-            ...prev,
-            newCategory: { ...INITIAL_CATEGORY },
-            editingCategory: null,
-            inlineEditingId: null,
-            inlineEditData: null
-        }));
-    }, []);
-
-    // Enhanced submission handler
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (formState.editingCategory) {
-            await handleUpdate(e);
-        } else {
-            setState(prev => ({ ...prev, isSubmitting: true }));
-
-            try {
-                const categoryData = {
-                    ...formState.newCategory,
-                    name: formState.newCategory.name.trim(),
-                    type: formState.newCategory.type.toLowerCase(),
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                };
-
-                await addCategory(currentUser.uid, categoryData);
-                showMessage('Category added successfully', 'success');
-                resetForm();
-                await loadCategories();
-            } catch (error) {
-                showMessage('Failed to add category', 'error');
-            } finally {
-                setState(prev => ({ ...prev, isSubmitting: false }));
-            }
-        }
-    };
-
-    // Add new handler for category submission
-    const handleAddCategory = async (categoryData) => {
-        if (!categoryData.name?.trim()) {
-            showMessage(ERROR_MESSAGES.NAME_REQUIRED, 'error');
-            return;
-        }
-
-        // Check if category name already exists (but ignore current category when editing)
-        const nameExists = state.categories.some(
-            cat => cat.id !== categoryData.id && // Skip current category when editing
-                cat.name.toLowerCase() === categoryData.name.trim().toLowerCase() &&
-                cat.type.toLowerCase() === categoryData.type.trim().toLowerCase()
-        );
-
-        if (nameExists) {
-            showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
-            return;
-        }
-
-        setState(prev => ({ ...prev, isSubmitting: true }));
-        setError(null);
-
-        try {
-            if (categoryData.id) {
-                // Update existing category
-                await categoryService.updateCategory(categoryData.id, categoryData);
-                showMessage('Category updated successfully', 'success');
-            } else {
-                // Add new category
-                await categoryService.addCategory(categoryData);
-                showMessage('Category added successfully', 'success');
-            }
-
-            await loadCategories();
-            if (onSuccess) onSuccess();
-        } catch (error) {
-            const message = error.message || 
-                (categoryData.id ? ERROR_MESSAGES.UPDATE_ERROR : ERROR_MESSAGES.ADD_ERROR);
-            showMessage(message, 'error');
-            setError(message);
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    };
-
-    // Add new handler for filter changes
-    const handleFilterChange = useCallback((field, value) => {
-        setState(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    }, []);
-
-    // Add handleEdit function
-    const handleEdit = useCallback((category) => {
-        // Reset any existing edit states
-        setFormState(prev => ({
-            ...prev,
-            editingCategory: {
-                ...category,
-                name: category.name.trim(),
-                type: category.type.toLowerCase(),
-                status: category.status || 'active'
-            },
-            inlineEditingId: null,
-            inlineEditData: null
-        }));
-
-        // Show success message
-        showMessage('Category ready for editing', 'info');
-
-        // Scroll to form if not in view
-        if (!showOnlyList) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    }, [showMessage, showOnlyList]);
-
-    // Add handleUpdate function
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        const { editingCategory } = formState;
-
-        if (!editingCategory?.name?.trim()) {
-            showMessage(ERROR_MESSAGES.NAME_REQUIRED, 'error');
-            return;
-        }
-
-        // Check if updated name conflicts with existing categories
-        const nameExists = state.categories.some(
-            cat => cat.id !== editingCategory.id &&
-                cat.name.toLowerCase() === editingCategory.name.trim().toLowerCase()
-        );
-        if (nameExists) {
-            showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
-            return;
-        }
-
-        setState(prev => ({ ...prev, isSubmitting: true }));
-        setError(null);
-
-        try {
-            await updateCategory(editingCategory.id, {
-                ...editingCategory,
-                name: editingCategory.name.trim(),
-                type: editingCategory.type.toLowerCase(),
-                updatedAt: new Date()
-            });
-            showMessage('Category updated successfully', 'success');
-            resetForm();
-            await loadCategories();
-        } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.UPDATE_ERROR;
-            showMessage(message, 'error');
-            setError(message);
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    };
-
-    // Enhanced delete handler with better error handling
-    const handleDelete = async (categoryId, categoryName) => {
-        const isConfirmed = window.confirm(
-            `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`
-        );
-
-        if (!isConfirmed) return;
-
-        setState(prev => ({ ...prev, isLoading: true }));
-        setError(null);
-
-        try {
-            await categoryService.deleteCategory(categoryId);
-            showMessage('Category deleted successfully', 'success');
-            await loadCategories();
-        } catch (error) {
-            const message = error.message || ERROR_MESSAGES.DELETE_ERROR;
-            showMessage(message, 'error');
-            setError(message);
-        } finally {
-            setState(prev => ({ ...prev, isLoading: false }));
-        }
-    };
-
-    const validateCategory = useCallback((category) => {
-        if (!category.name?.trim()) {
-            throw new Error('Category name is required');
-        }
-        if (category.name.length < 2) {
-            throw new Error('Category name must be at least 2 characters');
-        }
-        if (!['expense', 'income'].includes(category.type)) {
-            throw new Error('Invalid category type');
-        }
-        return true;
-    }, []);
-
-    const handleCategoryAction = async (action, categoryData) => {
-        try {
-            validateCategory(categoryData);
-            setState(prev => ({ ...prev, isSubmitting: true }));
-
-            switch (action) {
-                case 'add':
-                    await addCategory(currentUser.uid, categoryData);
-                    showMessage('Category added successfully', 'success');
-                    break;
-                case 'update':
-                    await updateCategory(categoryData.id, categoryData);
-                    showMessage('Category updated successfully', 'success');
-                    break;
-                case 'delete':
-                    await deleteCategory(categoryData.id);
-                    showMessage('Category deleted successfully', 'success');
-                    break;
-                default:
-                    throw new Error('Invalid action');
-            }
-
-            if (onSuccess) onSuccess();
-            resetForm();
-        } catch (error) {
-            showMessage(error.message, 'error');
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    };
-
-    // Components
-    const LoadingSpinner = () => (
-        <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600"></div>
-            <p className="text-sm text-gray-500">Loading categories...</p>
-        </div>
-    );
-
-    const CategoryForm = () => (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Type field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Type</label>
-                    <select
-                        value={formState.newCategory.type}
-                        onChange={(e) => handleFormChange('type', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                    >
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                    </select>
+    return (
+        <div className="overflow-x-auto">
+            {isLoading ? (
+                <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
                 </div>
-
-                {/* Name field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Category Name</label>
-                    <input
-                        type="text"
-                        placeholder="Enter category name"
-                        value={formState.newCategory.name}
-                        onChange={(e) => handleFormChange('name', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                        required
-                    />
-                </div>
-
-                {/* Status field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <select
-                        value={formState.newCategory.status}
-                        onChange={(e) => handleFormChange('status', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* Submit button */}
-            <div className="flex justify-end">
-                <button
-                    type="submit"
-                    disabled={state.isSubmitting}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium 
-                        hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                    {state.isSubmitting ? (
-                        <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
-                            <span>Adding...</span>
-                        </>
-                    ) : (
-                        <span>Add Category</span>
-                    )}
-                </button>
-            </div>
-        </form>
-    );
-
-    const CategoryTable = () => (
-        <div className="overflow-hidden">
-            {/* Mobile Filters */}
-            <div className="p-4 border-b border-gray-200">
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-800">List of Categories</h3>
-                        <button
-                            onClick={() => setState(prev => ({ ...prev, showMobileFilters: !prev.showMobileFilters }))}
-                            className="sm:hidden p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                            <MdFilterList className="w-5 h-5 text-gray-600" />
-                        </button>
-                    </div>
-
-                    {/* Mobile Filter Panel */}
-                    <div className={`sm:hidden space-y-4 ${state.showMobileFilters ? 'block' : 'hidden'}`}>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search categories..."
-                                value={state.searchTerm}
-                                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                                className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-lg
-                                         text-base placeholder:text-gray-400
-                                         focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            />
-                            <MdFilterList className="absolute right-3 top-3.5 w-5 h-5 text-gray-400" />
-                        </div>
-
-                        <select
-                            value={state.filter}
-                            onChange={(e) => handleFilterChange('filter', e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg 
-                                     bg-white text-base"
-                        >
-                            <option value="all">All Categories</option>
-                            <option value="expense">Expenses</option>
-                            <option value="income">Income</option>
-                        </select>
-
-                        {/* Active Filters */}
-                        {(state.filter !== 'all' || state.searchTerm) && (
-                            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
-                                {state.filter !== 'all' && (
-                                    <span className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
-                                        {toTitleCase(state.filter)}
-                                    </span>
-                                )}
-                                {state.searchTerm && (
-                                    <span className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 rounded-lg">
-                                        Search: {state.searchTerm}
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Category List */}
-            <div className="block sm:hidden">
-                {state.isLoading ? (
-                    <LoadingSpinner />
-                ) : filteredCategories.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                            <MdFilterList className="h-6 w-6 text-gray-400" />
-                        </div>
-                        <h3 className="mt-4 text-sm font-medium text-gray-900">No categories found</h3>
-                        <p className="mt-2 text-sm text-gray-500">
-                            {state.searchTerm ? 'Try adjusting your search or filters' : 'Add your first category'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-200">
-                        {filteredCategories.map((category, index) => (
-                            <div key={category.id} className="p-4 hover:bg-gray-50">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm text-gray-500">#{index + 1}</span>
-                                        <h4 className="font-medium text-gray-900">{category.name}</h4>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => handleEdit(category)}
-                                            disabled={state.isLoading || formState.editingCategory}
-                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg 
-                                                     transition-colors disabled:opacity-50"
-                                            aria-label="Edit category"
-                                        >
-                                            <MdEdit size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(category.id, category.name)}
-                                            disabled={state.isLoading || formState.editingCategory}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg 
-                                                     transition-colors disabled:opacity-50"
-                                            aria-label="Delete category"
-                                        >
-                                            <MdDelete size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-1 text-xs font-medium rounded-lg
-                                        ${category.type === 'income' 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-red-100 text-red-800'}`}
-                                    >
-                                        {toTitleCase(category.type)}
-                                    </span>
-                                    <span className={`px-2 py-1 text-xs font-medium rounded-lg
-                                        ${category.status === 'active'
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : 'bg-gray-100 text-gray-800'}`}
-                                    >
-                                        {toTitleCase(category.status)}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden sm:block overflow-x-auto">
+            ) : (
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Name
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Type
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredCategories.map((category, index) => (
-                            <tr key={category.id} className="hover:bg-gray-50">
+                        {filteredCategories.map(category => (
+                            <tr
+                                key={category.id}
+                                className="hover:bg-gray-50 transition-colors"
+                            >
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-500 w-16">
-                                        {index + 1}
+                                    <div className="text-sm font-medium text-gray-900">
+                                        {category.name}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-gray-900">{category.name}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        ${category.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                        ${category.type === 'expense'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-green-100 text-green-800'
+                                        }`}
                                     >
                                         {toTitleCase(category.type)}
                                     </span>
@@ -759,89 +306,40 @@ export default function CategorySettings({
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         ${category.status === 'active'
                                             ? 'bg-blue-100 text-blue-800'
-                                            : 'bg-gray-100 text-gray-800'}`}
+                                            : 'bg-gray-100 text-gray-800'
+                                        }`}
                                     >
-                                        {toTitleCase(category.status)}
+                                        {toTitleCase(category.status || 'active')}
                                     </span>
                                 </td>
-
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center justify-center space-x-3">
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex justify-end gap-2">
                                         <button
                                             onClick={() => handleEdit(category)}
-                                            disabled={state.isLoading || formState.editingCategory !== null}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full 
-                                                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title={formState.editingCategory ? "Finish current edit first" : "Edit Category"}
+                                            className="text-indigo-600 hover:text-indigo-900"
                                         >
-                                            <MdEdit size={20} />
+                                            <MdEdit className="w-5 h-5" />
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(category.id, category.name)}
-                                            disabled={state.isLoading || formState.editingCategory !== null}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-full 
-                                                transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title={formState.editingCategory ? "Finish current edit first" : "Delete Category"}
+                                            onClick={() => handleDeleteClick(category)}
+                                            disabled={isLoading}
+                                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
                                         >
-                                            <MdDelete size={20} />
+                                            <MdDelete className="w-5 h-5" />
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
+                        {filteredCategories.length === 0 && (
+                            <tr>
+                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                    No categories found
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
-            </div>
-
-            {/* Empty State - Update for better mobile display */}
-            {!state.isLoading && filteredCategories.length === 0 && (
-                <div className="text-center py-12 px-4">
-                    <div className="text-gray-400 mb-4">
-                        <MdFilterList size={48} className="mx-auto" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
-                    <p className="text-gray-500 text-sm">
-                        {state.searchTerm
-                            ? 'Try adjusting your search or filter criteria'
-                            : 'Add your first category using the form above'}
-                    </p>
-                </div>
-            )}
-
-            {/* Loading State */}
-            {state.isLoading && <LoadingSpinner />}
-        </div>
-    );
-
-    // Add error display component
-    const ErrorMessage = ({ message }) => message ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong className="font-medium">Error: </strong>
-            <span className="block sm:inline">{message}</span>
-        </div>
-    ) : null;
-
-    // Main render without error boundary
-    return (
-        <div className="divide-y divide-gray-200">
-            {error && <ErrorMessage message={error} />}
-            {state.isLoading && !showOnlyForm ? (
-                <LoadingSpinner />
-            ) : (
-                <>
-                    {(showOnlyForm || !showOnlyList) && (
-                        <div className="p-6">
-                            <AddCategoryForm
-                                onSubmit={handleAddCategory}
-                                disabled={state.isLoading}
-                                isSubmitting={state.isSubmitting}
-                                editingCategory={editingCategory}
-                                onCancelEdit={onCancelEdit}
-                            />
-                        </div>
-                    )}
-                    {(showOnlyList || !showOnlyForm) && <CategoryTable />}
-                </>
             )}
         </div>
     );
