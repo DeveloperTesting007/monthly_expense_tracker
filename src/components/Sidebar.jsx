@@ -11,7 +11,8 @@ import {
     MdLogout,
     MdCategory,
     MdExpandMore,
-    MdExpandLess
+    MdExpandLess,
+    MdTaskAlt
 } from 'react-icons/md';
 
 // Styling constants
@@ -110,8 +111,9 @@ export default function Sidebar({ onClose, isMobileOpen }) {
     const navItems = [
         { title: 'Dashboard', path: '/dashboard', icon: <MdDashboard size={22} /> },
         { title: 'Add Transaction', path: '/expenses', icon: <MdAttachMoney size={22} /> },
+        { title: 'Todo Tasks', path: '/todo', icon: <MdTaskAlt size={22} /> },
         { title: 'Reports', path: '/reports', icon: <MdInsertChart size={22} /> },
-        { 
+        {
             title: 'Settings',
             icon: <MdSettings size={22} />,
             collapsible: true,
@@ -177,8 +179,8 @@ export default function Sidebar({ onClose, isMobileOpen }) {
                     {/* Navigation */}
                     <nav className="flex-1 space-y-1">
                         {navItems.map(item => {
-                            const isActive = item.path ? isPathActive(item.path) : 
-                                           item.subItems?.some(sub => isPathActive(sub.path));
+                            const isActive = item.path ? isPathActive(item.path) :
+                                item.subItems?.some(sub => isPathActive(sub.path));
 
                             return (
                                 <div key={item.title}>
