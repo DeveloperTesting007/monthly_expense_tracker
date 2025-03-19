@@ -10,31 +10,41 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Categories collection - Allow read for all authenticated users, write for admins
-    match /categories/{categoryId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated() && 
-        (request.auth.uid == "ADMIN_UID" || request.auth.token.admin == true);
+    function isAdmin() {
+      return request.auth.token.admin == true || request.auth.uid == "ADMIN_UID";
     }
 
-    // Existing transactions rules
+    // Categories collection - Allow users to manage their own categories
+    match /categories/{categoryId} {
+      // Allow read for authenticated users (could restrict to owner if needed)
+      allow read: if isAuthenticated();
+      // Allow create if userId matches the authenticated user
+      allow create: if isAuthenticated() && 
+                    isOwner(request.resource.data.userId);
+      // Allow update and delete if userId matches the authenticated user
+      allow update, delete: if isAuthenticated() && 
+                            isOwner(resource.data.userId);
+      // Optional: Allow admins full access
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Transactions collection - User-specific access
     match /transactions/{transactionId} {
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
       allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
       allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
 
-    // User rules
+    // Users collection - User-specific access
     match /users/{userId} {
       allow read, write: if isAuthenticated() && isOwner(userId);
     }
 
-    // Add rules for todos collection
+    // Todos collection - User-specific access
     match /todos/{todoId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
   }
 }
-

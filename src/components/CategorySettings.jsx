@@ -3,8 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageProvider';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '../services/categoryService';
 import { MdAdd, MdEdit, MdDelete, MdFilterList } from 'react-icons/md';
-import { db } from '../config/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 // Type definitions
 const INITIAL_CATEGORY = {
@@ -13,7 +11,7 @@ const INITIAL_CATEGORY = {
     status: 'active'
 };
 
-// Add error message constants
+// Error message constants
 const ERROR_MESSAGES = {
     NAME_REQUIRED: 'Category name is required',
     NAME_TOO_SHORT: 'Category name must be at least 2 characters',
@@ -25,12 +23,12 @@ const ERROR_MESSAGES = {
     NETWORK_ERROR: 'Network error. Please check your connection',
 };
 
-// Add this utility function near the top with other constants
+// Utility function
 const toTitleCase = (str) => {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
-// Updated Add Category Form
+// AddCategoryForm Component
 const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, onCancelEdit }) => {
     const [formData, setFormData] = useState({
         name: '',
@@ -38,7 +36,6 @@ const AddCategoryForm = ({ onSubmit, disabled, isSubmitting, editingCategory, on
         status: 'active'
     });
 
-    // Initialize form with editing data
     useEffect(() => {
         if (editingCategory) {
             setFormData({
@@ -218,14 +215,10 @@ export default function CategorySettings({
     onSuccess,
     editingCategory,
     onCancelEdit,
-    // ...other props
 }) {
-    // Add error state
     const [error, setError] = useState(null);
-
-    // Organized state management
     const [state, setState] = useState({
-        categories: [], // Change to array
+        categories: [],
         isLoading: true,
         isSubmitting: false,
         filter: 'all',
@@ -243,7 +236,6 @@ export default function CategorySettings({
     const { currentUser } = useAuth();
     const { showMessage } = useMessage();
 
-    // Memoized filtered categories
     const filteredCategories = useMemo(() => {
         return state.categories.filter(category => {
             const matchesFilter = state.filter === 'all' || category.type === state.filter;
@@ -252,19 +244,17 @@ export default function CategorySettings({
         });
     }, [state.categories, state.filter, state.searchTerm]);
 
-    // Load categories with error handling
     const loadCategories = useCallback(async () => {
         if (!currentUser) return;
 
         try {
             setState(prev => ({ ...prev, isLoading: true }));
-            const categoriesData = await getCategories();
+            const categoriesData = await getCategories(currentUser.uid); // Pass userId
 
-            // Convert categories object to array
             const categoriesArray = Object.entries(categoriesData).reduce((acc, [type, categories]) => {
                 return [...acc, ...categories.map(cat => ({
                     ...cat,
-                    type // Ensure type is included
+                    type
                 }))];
             }, []);
 
@@ -275,7 +265,7 @@ export default function CategorySettings({
             }));
             setError(null);
         } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.LOAD_ERROR;
+            const message = error.message || ERROR_MESSAGES.LOAD_ERROR;
             showMessage(message, 'error');
             setError(message);
             setState(prev => ({ ...prev, isLoading: false }));
@@ -286,7 +276,6 @@ export default function CategorySettings({
         loadCategories();
     }, [loadCategories]);
 
-    // Optimized form handlers
     const handleFormChange = useCallback((field, value) => {
         setFormState(prev => ({
             ...prev,
@@ -307,46 +296,14 @@ export default function CategorySettings({
         }));
     }, []);
 
-    // Enhanced submission handler
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (formState.editingCategory) {
-            await handleUpdate(e);
-        } else {
-            setState(prev => ({ ...prev, isSubmitting: true }));
-
-            try {
-                const categoryData = {
-                    ...formState.newCategory,
-                    name: formState.newCategory.name.trim(),
-                    type: formState.newCategory.type.toLowerCase(),
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                };
-
-                await addCategory(currentUser.uid, categoryData);
-                showMessage('Category added successfully', 'success');
-                resetForm();
-                await loadCategories();
-            } catch (error) {
-                showMessage('Failed to add category', 'error');
-            } finally {
-                setState(prev => ({ ...prev, isSubmitting: false }));
-            }
-        }
-    };
-
-    // Add new handler for category submission
     const handleAddCategory = async (categoryData) => {
         if (!categoryData.name?.trim()) {
             showMessage(ERROR_MESSAGES.NAME_REQUIRED, 'error');
             return;
         }
 
-        // Check if category name already exists (but ignore current category when editing)
         const nameExists = state.categories.some(
-            cat => cat.id !== categoryData.id && // Skip current category when editing
+            cat => cat.id !== categoryData.id &&
                 cat.name.toLowerCase() === categoryData.name.trim().toLowerCase() &&
                 cat.type.toLowerCase() === categoryData.type.trim().toLowerCase()
         );
@@ -361,17 +318,16 @@ export default function CategorySettings({
 
         try {
             if (categoryData.id) {
-                // Update existing category
-                await categoryService.updateCategory(categoryData.id, categoryData);
+                await updateCategory(categoryData.id, categoryData);
                 showMessage('Category updated successfully', 'success');
             } else {
-                // Add new category
-                await categoryService.addCategory(categoryData);
+                await addCategory(currentUser.uid, categoryData); // Pass userId
                 showMessage('Category added successfully', 'success');
             }
-
-            await loadCategories();
+            
             if (onSuccess) onSuccess();
+            resetForm();
+            await loadCategories();
         } catch (error) {
             const message = error.message || 
                 (categoryData.id ? ERROR_MESSAGES.UPDATE_ERROR : ERROR_MESSAGES.ADD_ERROR);
@@ -382,7 +338,6 @@ export default function CategorySettings({
         }
     };
 
-    // Add new handler for filter changes
     const handleFilterChange = useCallback((field, value) => {
         setState(prev => ({
             ...prev,
@@ -390,9 +345,7 @@ export default function CategorySettings({
         }));
     }, []);
 
-    // Add handleEdit function
     const handleEdit = useCallback((category) => {
-        // Reset any existing edit states
         setFormState(prev => ({
             ...prev,
             editingCategory: {
@@ -404,59 +357,12 @@ export default function CategorySettings({
             inlineEditingId: null,
             inlineEditData: null
         }));
-
-        // Show success message
         showMessage('Category ready for editing', 'info');
-
-        // Scroll to form if not in view
         if (!showOnlyList) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [showMessage, showOnlyList]);
 
-    // Add handleUpdate function
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        const { editingCategory } = formState;
-
-        if (!editingCategory?.name?.trim()) {
-            showMessage(ERROR_MESSAGES.NAME_REQUIRED, 'error');
-            return;
-        }
-
-        // Check if updated name conflicts with existing categories
-        const nameExists = state.categories.some(
-            cat => cat.id !== editingCategory.id &&
-                cat.name.toLowerCase() === editingCategory.name.trim().toLowerCase()
-        );
-        if (nameExists) {
-            showMessage(ERROR_MESSAGES.NAME_EXISTS, 'error');
-            return;
-        }
-
-        setState(prev => ({ ...prev, isSubmitting: true }));
-        setError(null);
-
-        try {
-            await updateCategory(editingCategory.id, {
-                ...editingCategory,
-                name: editingCategory.name.trim(),
-                type: editingCategory.type.toLowerCase(),
-                updatedAt: new Date()
-            });
-            showMessage('Category updated successfully', 'success');
-            resetForm();
-            await loadCategories();
-        } catch (error) {
-            const message = error.response?.data?.message || ERROR_MESSAGES.UPDATE_ERROR;
-            showMessage(message, 'error');
-            setError(message);
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    };
-
-    // Enhanced delete handler with better error handling
     const handleDelete = async (categoryId, categoryName) => {
         const isConfirmed = window.confirm(
             `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`
@@ -468,7 +374,7 @@ export default function CategorySettings({
         setError(null);
 
         try {
-            await categoryService.deleteCategory(categoryId);
+            await deleteCategory(categoryId);
             showMessage('Category deleted successfully', 'success');
             await loadCategories();
         } catch (error) {
@@ -480,50 +386,6 @@ export default function CategorySettings({
         }
     };
 
-    const validateCategory = useCallback((category) => {
-        if (!category.name?.trim()) {
-            throw new Error('Category name is required');
-        }
-        if (category.name.length < 2) {
-            throw new Error('Category name must be at least 2 characters');
-        }
-        if (!['expense', 'income'].includes(category.type)) {
-            throw new Error('Invalid category type');
-        }
-        return true;
-    }, []);
-
-    const handleCategoryAction = async (action, categoryData) => {
-        try {
-            validateCategory(categoryData);
-            setState(prev => ({ ...prev, isSubmitting: true }));
-
-            switch (action) {
-                case 'add':
-                    await addCategory(currentUser.uid, categoryData);
-                    showMessage('Category added successfully', 'success');
-                    break;
-                case 'update':
-                    await updateCategory(categoryData.id, categoryData);
-                    showMessage('Category updated successfully', 'success');
-                    break;
-                case 'delete':
-                    await deleteCategory(categoryData.id);
-                    showMessage('Category deleted successfully', 'success');
-                    break;
-                default:
-                    throw new Error('Invalid action');
-            }
-
-            if (onSuccess) onSuccess();
-            resetForm();
-        } catch (error) {
-            showMessage(error.message, 'error');
-        } finally {
-            setState(prev => ({ ...prev, isSubmitting: false }));
-        }
-    };
-
     // Components
     const LoadingSpinner = () => (
         <div className="flex flex-col items-center justify-center py-8 gap-2">
@@ -532,76 +394,8 @@ export default function CategorySettings({
         </div>
     );
 
-    const CategoryForm = () => (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Type field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Type</label>
-                    <select
-                        value={formState.newCategory.type}
-                        onChange={(e) => handleFormChange('type', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                    >
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
-                    </select>
-                </div>
-
-                {/* Name field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Category Name</label>
-                    <input
-                        type="text"
-                        placeholder="Enter category name"
-                        value={formState.newCategory.name}
-                        onChange={(e) => handleFormChange('name', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                        required
-                    />
-                </div>
-
-                {/* Status field */}
-                <div>
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <select
-                        value={formState.newCategory.status}
-                        onChange={(e) => handleFormChange('status', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm"
-                        disabled={state.isSubmitting}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-
-            {/* Submit button */}
-            <div className="flex justify-end">
-                <button
-                    type="submit"
-                    disabled={state.isSubmitting}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium 
-                        hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                    {state.isSubmitting ? (
-                        <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
-                            <span>Adding...</span>
-                        </>
-                    ) : (
-                        <span>Add Category</span>
-                    )}
-                </button>
-            </div>
-        </form>
-    );
-
     const CategoryTable = () => (
         <div className="overflow-hidden">
-            {/* Mobile Filters */}
             <div className="p-4 border-b border-gray-200">
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between">
@@ -614,7 +408,6 @@ export default function CategorySettings({
                         </button>
                     </div>
 
-                    {/* Mobile Filter Panel */}
                     <div className={`sm:hidden space-y-4 ${state.showMobileFilters ? 'block' : 'hidden'}`}>
                         <div className="relative">
                             <input
@@ -640,7 +433,6 @@ export default function CategorySettings({
                             <option value="income">Income</option>
                         </select>
 
-                        {/* Active Filters */}
                         {(state.filter !== 'all' || state.searchTerm) && (
                             <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
                                 {state.filter !== 'all' && (
@@ -659,7 +451,6 @@ export default function CategorySettings({
                 </div>
             </div>
 
-            {/* Mobile Category List */}
             <div className="block sm:hidden">
                 {state.isLoading ? (
                     <LoadingSpinner />
@@ -725,7 +516,6 @@ export default function CategorySettings({
                 )}
             </div>
 
-            {/* Desktop Table View */}
             <div className="hidden sm:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -764,7 +554,6 @@ export default function CategorySettings({
                                         {toTitleCase(category.status)}
                                     </span>
                                 </td>
-
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center justify-center space-x-3">
                                         <button
@@ -793,7 +582,6 @@ export default function CategorySettings({
                 </table>
             </div>
 
-            {/* Empty State - Update for better mobile display */}
             {!state.isLoading && filteredCategories.length === 0 && (
                 <div className="text-center py-12 px-4">
                     <div className="text-gray-400 mb-4">
@@ -808,12 +596,10 @@ export default function CategorySettings({
                 </div>
             )}
 
-            {/* Loading State */}
             {state.isLoading && <LoadingSpinner />}
         </div>
     );
 
-    // Add error display component
     const ErrorMessage = ({ message }) => message ? (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
             <strong className="font-medium">Error: </strong>
@@ -821,7 +607,6 @@ export default function CategorySettings({
         </div>
     ) : null;
 
-    // Main render without error boundary
     return (
         <div className="divide-y divide-gray-200">
             {error && <ErrorMessage message={error} />}
