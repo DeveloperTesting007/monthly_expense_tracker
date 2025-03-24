@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { getCategories } from '../services/categoryService';
-import { db } from '../config/firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function TransactionForm({ onSubmit, isLoading, editData, onCancel }) {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     type: 'expense',
     categoryId: '',
@@ -17,20 +18,32 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
 
   useEffect(() => {
     const fetchCategories = async () => {
+      if (!currentUser?.uid) {
+        setCategoryError('Please sign in to add transactions');
+        setIsLoadingCategories(false);
+        return;
+      }
+
       try {
-        const fetchedCategories = await getCategories();
-        setCategories(fetchedCategories);
+        setIsLoadingCategories(true);
         setCategoryError(null);
+        const fetchedCategories = await getCategories(currentUser.uid);
+        
+        if (!fetchedCategories) {
+          throw new Error('No categories found');
+        }
+
+        setCategories(fetchedCategories);
       } catch (error) {
         console.error('Error fetching categories:', error);
-        setCategoryError('Failed to load categories');
+        setCategoryError('Failed to load categories. Please try again.');
       } finally {
         setIsLoadingCategories(false);
       }
     };
 
     fetchCategories();
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     if (editData) {
@@ -66,6 +79,11 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!currentUser?.uid) {
+      setCategoryError('Please sign in to add transactions');
+      return;
+    }
+    
     if (!validate()) return;
 
     onSubmit({
@@ -73,7 +91,8 @@ export default function TransactionForm({ onSubmit, isLoading, editData, onCance
       amount: parseFloat(formData.amount),
       description: formData.description.trim(),
       categoryId: formData.categoryId,
-      date: formData.date
+      date: formData.date,
+      userId: currentUser.uid
     });
 
     resetForm();

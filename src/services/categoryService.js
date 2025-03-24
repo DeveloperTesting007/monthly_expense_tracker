@@ -12,7 +12,7 @@ import {
     orderBy 
 } from 'firebase/firestore';
 
-// Add a new category
+// Add a new category and refresh the list of categories
 export const addCategory = async (userId, categoryData) => {
     if (!userId) throw new Error('User ID is required');
     if (!categoryData.name) throw new Error('Category name is required');
@@ -28,8 +28,11 @@ export const addCategory = async (userId, categoryData) => {
             updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(collection(db, 'categories'), category);
-        return { id: docRef.id, ...category };
+        const docRef = await addDoc(collection(db, `monthly_tracker/${userId}/categories`), category);
+        
+        // Refresh the list of categories after successful creation
+        const updatedCategories = await getCategories(userId);
+        return { id: docRef.id, ...category, updatedCategories };
     } catch (error) {
         console.error('Add category error:', error);
         if (error.code === 'permission-denied') {
@@ -40,9 +43,11 @@ export const addCategory = async (userId, categoryData) => {
 };
 
 // Get all categories for a user with proper sorting
-export const getCategories = async () => {
+export const getCategories = async (userId) => {
+    if (!userId) throw new Error('User ID is required');
+
     try {
-        const categoriesRef = collection(db, 'categories');
+        const categoriesRef = collection(db, `monthly_tracker/${userId}/categories`);
         const q = query(categoriesRef, orderBy('name', 'asc'));
         const snapshot = await getDocs(q);
         
@@ -64,16 +69,20 @@ export const getCategories = async () => {
         return categories;
     } catch (error) {
         console.error('Error fetching categories:', error);
-        throw new Error('Failed to fetch categories');
+        if (error.code === 'permission-denied') {
+            throw new Error('You do not have permission to access categories');
+        }
+        throw new Error('Failed to fetch categories: ' + error.message);
     }
 };
 
 // Update a category
-export const updateCategory = async (categoryId, categoryData) => {
+export const updateCategory = async (userId, categoryId, categoryData) => {
+    if (!userId) throw new Error('User ID is required');
     if (!categoryId) throw new Error('Category ID is required');
 
     try {
-        const categoryRef = doc(db, 'categories', categoryId);
+        const categoryRef = doc(db, `monthly_tracker/${userId}/categories`, categoryId);
         const updateData = {
             ...categoryData,
             updatedAt: serverTimestamp()
@@ -88,11 +97,12 @@ export const updateCategory = async (categoryId, categoryData) => {
 };
 
 // Delete a category
-export const deleteCategory = async (categoryId) => {
+export const deleteCategory = async (userId, categoryId) => {
+    if (!userId) throw new Error('User ID is required');
     if (!categoryId) throw new Error('Category ID is required');
 
     try {
-        await deleteDoc(doc(db, 'categories', categoryId));
+        await deleteDoc(doc(db, `monthly_tracker/${userId}/categories`, categoryId));
     } catch (error) {
         console.error('Delete category error:', error);
         throw new Error('Failed to delete category');

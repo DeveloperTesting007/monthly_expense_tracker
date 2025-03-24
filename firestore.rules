@@ -14,37 +14,36 @@ service cloud.firestore {
       return request.auth.token.admin == true || request.auth.uid == "ADMIN_UID";
     }
 
-    // Categories collection - Allow users to manage their own categories
-    match /categories/{categoryId} {
-      // Allow read for authenticated users (could restrict to owner if needed)
-      allow read: if isAuthenticated();
-      // Allow create if userId matches the authenticated user
-      allow create: if isAuthenticated() && 
-                    isOwner(request.resource.data.userId);
-      // Allow update and delete if userId matches the authenticated user
-      allow update, delete: if isAuthenticated() && 
-                            isOwner(resource.data.userId);
-      // Optional: Allow admins full access
-      allow create, update, delete: if isAdmin();
-    }
+    // User-specific collections
+    match /monthly_tracker/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
 
-    // Transactions collection - User-specific access
-    match /transactions/{transactionId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
+      // Categories subcollection
+      match /categories/{categoryId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() && isOwner(userId);
+        allow update, delete: if isAuthenticated() && isOwner(userId);
+        allow create, update, delete: if isAdmin();
+      }
+
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() && isOwner(userId);
+        allow update, delete: if isAuthenticated() && isOwner(userId);
+      }
+
+      // Todos subcollection
+      match /todos/{todoId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() && isOwner(userId);
+        allow update, delete: if isAuthenticated() && isOwner(userId);
+      }
     }
 
     // Users collection - User-specific access
     match /users/{userId} {
       allow read, write: if isAuthenticated() && isOwner(userId);
-    }
-
-    // Todos collection - User-specific access
-    match /todos/{todoId} {
-      allow read: if isAuthenticated() && isOwner(resource.data.userId);
-      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
-      allow update, delete: if isAuthenticated() && isOwner(resource.data.userId);
     }
   }
 }

@@ -21,7 +21,7 @@ export const addTransaction = async (userId, transactionData) => {
 
     try {
         // Verify that the category exists
-        const categories = await getCategories();
+        const categories = await getCategories(userId);
         const category = categories[transactionData.type].find(c => c.id === transactionData.categoryId);
         
         if (!category) {
@@ -37,7 +37,7 @@ export const addTransaction = async (userId, transactionData) => {
             amount: Number(transactionData.amount)
         };
 
-        const docRef = await addDoc(collection(db, 'transactions'), transaction);
+        const docRef = await addDoc(collection(db, `monthly_tracker/${userId}/transactions`), transaction);
         return { id: docRef.id, ...transaction };
     } catch (error) {
         console.error('Add transaction error:', error);
@@ -50,12 +50,12 @@ export const getRecentTransactions = async (userId, lastDoc = null, pageSize = 1
 
     try {
         // First, fetch all categories to create a lookup map
-        const categoriesData = await getCategories();
+        const categoriesData = await getCategories(userId);
         const categoryMap = createCategoryMap(categoriesData);
 
         // Fetch transactions
         let queryRef = query(
-            collection(db, 'transactions'),
+            collection(db, `monthly_tracker/${userId}/transactions`),
             where('userId', '==', userId),
             orderBy('createdAt', 'desc'),
             limit(pageSize)
@@ -88,7 +88,10 @@ export const getRecentTransactions = async (userId, lastDoc = null, pageSize = 1
         };
     } catch (error) {
         console.error('Recent transactions error:', error);
-        throw new Error('Failed to fetch recent transactions');
+        if (error.code === 'permission-denied') {
+            throw new Error('You do not have permission to access transactions');
+        }
+        throw new Error('Failed to fetch recent transactions: ' + error.message);
     }
 };
 
@@ -97,11 +100,11 @@ export const getAllTransactions = async (userId, dateRange = 'all') => {
 
     try {
         // First fetch categories for lookup
-        const categoriesData = await getCategories();
+        const categoriesData = await getCategories(userId);
         const categoryMap = createCategoryMap(categoriesData);
 
         let q = query(
-            collection(db, 'transactions'),
+            collection(db, `monthly_tracker/${userId}/transactions`),
             where('userId', '==', userId),
             orderBy('date', 'desc')
         );
@@ -130,7 +133,7 @@ export const getAllTransactions = async (userId, dateRange = 'all') => {
 
             if (dateRange !== 'all') {
                 q = query(
-                    collection(db, 'transactions'),
+                    collection(db, `monthly_tracker/${userId}/transactions`),
                     where('userId', '==', userId),
                     where('date', '>=', startDate.toISOString()),
                     orderBy('date', 'desc')
@@ -155,6 +158,9 @@ export const getAllTransactions = async (userId, dateRange = 'all') => {
         return { transactions }; // Return in expected format
     } catch (error) {
         console.error('Error fetching all transactions:', error);
+        if (error.code === 'permission-denied') {
+            throw new Error('You do not have permission to access transactions');
+        }
         throw new Error('Failed to fetch transactions: ' + error.message);
     }
 };
@@ -250,7 +256,7 @@ export const updateTransaction = async (userId, transactionId, updatedData) => {
     if (!transactionId) throw new Error('Transaction ID is required');
 
     try {
-        const transactionRef = doc(db, 'transactions', transactionId);
+        const transactionRef = doc(db, `monthly_tracker/${userId}/transactions`, transactionId);
         
         // Add timestamp and ensure amount is a number
         const dataToUpdate = {
@@ -269,11 +275,12 @@ export const updateTransaction = async (userId, transactionId, updatedData) => {
     }
 };
 
-export const deleteTransaction = async (transactionId) => {
+export const deleteTransaction = async (userId, transactionId) => {
+    if (!userId) throw new Error('User ID is required');
     if (!transactionId) throw new Error('Transaction ID is required');
 
     try {
-        await deleteDoc(doc(db, 'transactions', transactionId));
+        await deleteDoc(doc(db, `monthly_tracker/${userId}/transactions`, transactionId));
     } catch (error) {
         console.error('Delete transaction error:', error);
         throw new Error('Failed to delete transaction: ' + error.message);
