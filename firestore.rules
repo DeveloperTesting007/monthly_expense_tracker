@@ -45,5 +45,35 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isAuthenticated() && isOwner(userId);
     }
+
+    // Todos collection
+    match /todos/{todoId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && validTodo(request.resource.data);
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && validTodoUpdate(request.resource.data);
+      allow delete: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+    }
+
+    function validTodo(todo) {
+      return todo.size() >= 4 
+        && todo.title is string 
+        && todo.title.size() > 0 
+        && todo.title.size() <= 100
+        && todo.status in ['pending', 'in-progress', 'urgent', 'completed']
+        && todo.userId is string
+        && todo.createdAt is string;
+    }
+
+    function validTodoUpdate(todo) {
+      return todo.title is string 
+        && todo.title.size() > 0 
+        && todo.title.size() <= 100
+        && todo.status in ['pending', 'in-progress', 'urgent', 'completed'];
+    }
   }
 }
