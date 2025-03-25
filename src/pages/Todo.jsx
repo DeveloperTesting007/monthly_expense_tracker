@@ -14,6 +14,7 @@ export default function Todo() {
     const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showStats, setShowStats] = useState(true);
+    const [showMobileStats, setShowMobileStats] = useState(false);
 
     const handleModalSubmit = async (formData) => {
         try {
@@ -26,24 +27,20 @@ export default function Todo() {
         }
     };
 
-    console.log('stats:', stats);
-
     const statsCards = useMemo(() => [
         {
             title: 'Pending',
             value: stats.details.pending,
             icon: <MdAssignment className="w-8 h-8 text-yellow-500" />,
             bgColor: 'bg-yellow-50',
-            textColor: 'text-yellow-600',
-            description: 'All tasks'
+            textColor: 'text-yellow-600'
         },
         {
             title: 'Completed',
             value: stats.completed,
             icon: <MdCheckCircle className="w-8 h-8 text-green-500" />,
             bgColor: 'bg-green-50',
-            textColor: 'text-green-600',
-            description: 'Finished tasks'
+            textColor: 'text-green-600'
         },
         {
             title: 'In Progress',
@@ -57,8 +54,7 @@ export default function Todo() {
             value: stats.urgent,
             icon: <MdFlag className="w-8 h-8 text-red-500" />,
             bgColor: 'bg-red-50',
-            textColor: 'text-red-600',
-            description: 'High priority tasks'
+            textColor: 'text-red-600'
         }
     ], [stats]);
 
@@ -67,6 +63,20 @@ export default function Todo() {
             fetchTodoStats();
         }
     }, [currentUser, fetchTodoStats]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                setShowMobileStats(true);
+            } else {
+                setShowMobileStats(false);
+            }
+        };
+
+        handleResize(); // Initial check
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleRefresh = () => {
         fetchTodoStats();
@@ -149,26 +159,38 @@ export default function Todo() {
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-                                {statsCards.map((card, index) => (
-                                    <div
-                                        key={index}
-                                        className={`${card.bgColor} rounded-xl p-6 flex flex-col justify-between`}
+                            <div className="lg:col-span-2">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">Statistics</h3>
+                                    <button
+                                        onClick={() => setShowMobileStats(!showMobileStats)}
+                                        className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                                        aria-label={showMobileStats ? 'Hide stats' : 'Show stats'}
                                     >
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className={`p-3 rounded-lg ${card.iconBg || 'bg-white/90'}`}>
-                                                {card.icon}
+                                        {showMobileStats ? <MdExpandLess size={24} /> : <MdExpandMore size={24} />}
+                                    </button>
+                                </div>
+                                <div className={`grid grid-cols-2 gap-4 transition-all duration-300
+                                    ${!showMobileStats ? 'hidden lg:grid' : ''}`}>
+                                    {statsCards.map((card, index) => (
+                                        <div
+                                            key={index}
+                                            className={`${card.bgColor} rounded-xl p-6 flex flex-col justify-between`}
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className={`p-3 rounded-lg ${card.iconBg || 'bg-white/90'}`}>
+                                                    {card.icon}
+                                                </div>
+                                                <span className={`text-3xl font-bold ${card.textColor}`}>
+                                                    {isLoading ? '-' : card.value}
+                                                </span>
                                             </div>
-                                            <span className={`text-3xl font-bold ${card.textColor}`}>
-                                                {isLoading ? '-' : card.value}
-                                            </span>
+                                            <div>
+                                                <h3 className="text-gray-700 font-medium">{card.title}</h3>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-gray-700 font-medium">{card.title}</h3>
-                                            <p className="text-sm text-gray-500 mt-1">{card.description}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
