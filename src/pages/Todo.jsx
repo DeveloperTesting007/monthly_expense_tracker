@@ -8,12 +8,11 @@ import TodoModal from '../components/TodoModal';
 import TodoSummaryChart from '../components/TodoSummaryChart';
 
 export default function Todo() {
-    const { stats, isLoading, error, setError, fetchTodoStats, addTodo } = useTodo();
+    const { stats, isLoading, setError, fetchTodoStats, addTodo } = useTodo();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { currentUser } = useAuth();
     const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
     const [showModal, setShowModal] = useState(false);
-    const [showStats, setShowStats] = useState(true);
     const [showMobileStats, setShowMobileStats] = useState(false);
 
     const handleModalSubmit = async (formData) => {
