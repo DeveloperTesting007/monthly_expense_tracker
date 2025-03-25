@@ -25,6 +25,7 @@ export class TodoService {
                     case 'pending': acc.pending++; break;
                     case 'in-progress': acc.inProgress++; break;
                     case 'urgent': acc.urgent++; break;
+                    case 'completed': acc.completed++; break;
                 }
             }
             return acc;
