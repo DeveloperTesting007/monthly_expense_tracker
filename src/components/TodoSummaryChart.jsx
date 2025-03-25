@@ -15,16 +15,16 @@ export default function TodoSummaryChart({ stats }) {
                 stats.urgent
             ],
             backgroundColor: [
-                'rgba(34, 197, 94, 0.85)',  // green
-                'rgba(234, 179, 8, 0.85)',  // yellow
-                'rgba(255, 165, 0, 0.85)', // orange
-                'rgba(239, 68, 68, 0.85)',  // red
+                'rgba(40, 167, 69, 0.85)',  // green
+                'rgba(255, 193, 7, 0.85)',  // yellow
+                'rgba(0, 123, 255, 0.85)', // blue
+                'rgba(220, 53, 69, 0.85)',  // red
             ],
             hoverBackgroundColor: [
-                'rgba(34, 197, 94, 1)',
-                'rgba(234, 179, 8, 1)',
-                'rgba(255, 165, 0, 1)',
-                'rgba(239, 68, 68, 1)',
+                'rgba(40, 167, 69, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(0, 123, 255, 0, 1)',
+                'rgba(220, 53, 69, 1)',
             ],
             borderWidth: 2,
             borderColor: '#ffffff',
@@ -75,28 +75,6 @@ export default function TodoSummaryChart({ stats }) {
                         </div>
                     </div>
                 </div>
-
-                {/* Stats */}
-                {/* <div className="space-y-4">
-                    {stats_details.map((stat, index) => (
-                        <div
-                            key={index}
-                            className={`${stat.bgColor} rounded-lg p-4 transition-all hover:scale-105`}
-                        >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    {stat.icon}
-                                    <span className="text-sm font-medium text-gray-600">
-                                        {stat.label}
-                                    </span>
-                                </div>
-                                <span className={`text-lg font-semibold ${stat.color}`}>
-                                    {stat.value}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                </div> */}
             </div>
         </div>
     );

@@ -31,7 +31,7 @@ export default function Todo() {
     const statsCards = useMemo(() => [
         {
             title: 'Pending',
-            value: stats.total,
+            value: stats.details.pending,
             icon: <MdAssignment className="w-8 h-8 text-yellow-500" />,
             bgColor: 'bg-yellow-50',
             textColor: 'text-yellow-600',
@@ -47,11 +47,10 @@ export default function Todo() {
         },
         {
             title: 'In Progress',
-            value: stats.pending,
-            icon: <MdPending className="w-8 h-8 text-orange-500" />,
-            bgColor: 'bg-orange-50',
-            textColor: 'text-orange-600',
-            description: `${stats.details.pending} pending, ${stats.details.inProgress} in progress`
+            value: stats.details.inProgress,
+            icon: <MdPending className="w-8 h-8 text-blue-500" />,
+            bgColor: 'bg-blue-50',
+            textColor: 'text-blue-600',
         },
         {
             title: 'Urgent',
