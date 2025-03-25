@@ -60,7 +60,7 @@ export default function SignUp() {
                 name,
                 phone
             });
-            navigate('/');
+            navigate('/dashboard', { replace: true });
         } catch (err) {
             setError(
                 err.code === 'auth/email-already-in-use' ? 'An account already exists with this email' :

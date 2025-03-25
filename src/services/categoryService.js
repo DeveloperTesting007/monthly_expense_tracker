@@ -12,6 +12,33 @@ import {
     orderBy 
 } from 'firebase/firestore';
 
+export class CategoryService {
+    static getDefaultCategories() {
+        return [
+            { name: 'Salary', type: 'income', icon: '💰', color: '#4CAF50',status:'active'},
+            { name: 'Other', type: 'income', icon: '💡', color: '#2196F3',status:'active' },
+            { name: 'Loan', type: 'expense', icon: '🏦', color: '#F44336',status:'active' },
+            { name: 'Food', type: 'expense', icon: '🍽️', color: '#FF9800',status:'active' },
+            { name: 'Other', type: 'expense', icon: '📦', color: '#9E9E9E',status:'active' }
+        ];
+    }
+
+    static async createDefaultCategories(userId) {
+        const categoriesRef = collection(db, 'monthly_tracker', userId, 'categories');
+        const defaultCategories = this.getDefaultCategories();
+        
+        const promises = defaultCategories.map(category => 
+            addDoc(categoriesRef, {
+                ...category,
+                userId,
+                createdAt: new Date().toISOString()
+            })
+        );
+
+        await Promise.all(promises);
+    }
+}
+
 // Add a new category and refresh the list of categories
 export const addCategory = async (userId, categoryData) => {
     if (!userId) throw new Error('User ID is required');

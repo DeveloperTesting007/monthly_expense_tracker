@@ -64,13 +64,23 @@ export class TodoService {
             createdAt: new Date().toISOString(),
             status: todoData.status || 'pending',
             priority: todoData.priority || 0, // 0: Low, 1: Medium, 2: High
+            dueDate: todoData.dueDate || null,
             completed: false,
+            comments: [],
             history: [{
                 action: 'created',
                 timestamp: new Date().toISOString(),
                 details: 'Task created'
             }]
         };
+        
+        if (todoData.comment) {
+            todo.comments.push({
+                text: todoData.comment,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
         const docRef = await addDoc(todosRef, todo);
         return { id: docRef.id, ...todo };
     }
@@ -105,6 +115,12 @@ export class TodoService {
         }
         if (oldData.title !== newData.title) {
             changes.push('Title updated');
+        }
+        if (oldData.dueDate !== newData.dueDate) {
+            changes.push('Due date updated');
+        }
+        if (newData.comment) {
+            changes.push('Comment added');
         }
         return changes.join(', ');
     }

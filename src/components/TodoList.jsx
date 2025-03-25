@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTodo } from '../contexts/TodoContext';
-import { MdHistory, MdLowPriority, MdPriorityHigh } from 'react-icons/md';
+import { MdHistory, MdEdit, MdDelete, MdPriorityHigh } from 'react-icons/md';
+import TodoModal from './TodoModal';
 
 export default function TodoList() {
     const { 
@@ -14,24 +15,29 @@ export default function TodoList() {
     } = useTodo();
     const [newTodoText, setNewTodoText] = useState('');
     const [showHistory, setShowHistory] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedTodo, setSelectedTodo] = useState(null);
 
     useEffect(() => {
         fetchTodos();
     }, [fetchTodos]);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!newTodoText.trim()) return;
-        
+    const handleOpenModal = (todo = null) => {
+        setSelectedTodo(todo);
+        setModalOpen(true);
+    };
+
+    const handleSubmit = async (formData) => {
         try {
-            await addTodo({
-                title: newTodoText,
-                status: 'pending',
-                priority: 0 // Default to low priority
-            });
-            setNewTodoText('');
+            if (selectedTodo) {
+                await updateTodo(selectedTodo.id, formData);
+            } else {
+                await addTodo(formData);
+            }
+            setModalOpen(false);
+            setSelectedTodo(null);
         } catch (err) {
-            console.error('Failed to add todo:', err);
+            console.error('Failed to save todo:', err);
         }
     };
 
@@ -69,21 +75,15 @@ export default function TodoList() {
 
     return (
         <div className="space-y-4">
-            <form onSubmit={handleSubmit} className="flex gap-2">
-                <input
-                    type="text"
-                    value={newTodoText}
-                    onChange={(e) => setNewTodoText(e.target.value)}
-                    placeholder="Add a new task..."
-                    className="flex-1 px-4 py-2 border rounded-lg"
-                />
+            <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Tasks</h2>
                 <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg"
+                    onClick={() => handleOpenModal()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
-                    Add
+                    Add Task
                 </button>
-            </form>
+            </div>
 
             <ul className="space-y-2">
                 {todos.map((todo) => (
@@ -120,6 +120,12 @@ export default function TodoList() {
                                     <MdHistory size={20} />
                                 </button>
                                 <button
+                                    onClick={() => handleOpenModal(todo)}
+                                    className="p-1 text-gray-500 hover:text-gray-700"
+                                >
+                                    <MdEdit size={20} />
+                                </button>
+                                <button
                                     onClick={() => handleDelete(todo.id)}
                                     className="px-2 py-1 text-red-500"
                                 >
@@ -142,6 +148,16 @@ export default function TodoList() {
                     </li>
                 ))}
             </ul>
+
+            <TodoModal
+                isOpen={modalOpen}
+                onClose={() => {
+                    setModalOpen(false);
+                    setSelectedTodo(null);
+                }}
+                onSubmit={handleSubmit}
+                initialData={selectedTodo}
+            />
         </div>
     );
 }

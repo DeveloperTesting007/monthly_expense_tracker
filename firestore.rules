@@ -51,6 +51,10 @@ service cloud.firestore {
         allow delete: if isAuthenticated() 
           && isOwner(userId);
       }
+
+      match /monthly_tracker/{userId}/categories/{categoryId} {
+        allow read, write: if isAuthenticated() && (isOwner(userId) || request.auth.token.admin == true);
+      }
     }
 
     // Users collection - User-specific access
