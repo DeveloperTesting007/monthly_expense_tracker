@@ -5,7 +5,6 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
     const [formData, setFormData] = useState({
         title: '',
         status: 'pending',
-        priority: 0,
         dueDate: '',
         comment: '',
     });
@@ -15,7 +14,6 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
             setFormData({
                 title: initialData.title || '',
                 status: initialData.status || 'pending',
-                priority: initialData.priority || 0,
                 dueDate: initialData.dueDate || '',
                 comment: '',
             });
@@ -35,7 +33,6 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
         setFormData({
             title: '',
             status: 'pending',
-            priority: 0,
             dueDate: '',
             comment: '',
         });
@@ -92,43 +89,23 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
                                     />
                                 </div>
 
-                                {/* Status & Priority */}
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-                                            <MdOutlineCategory className="h-5 w-5 text-gray-400" />
-                                            Status
-                                        </label>
-                                        <select
-                                            value={formData.status}
-                                            onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
-                                                shadow-sm transition-colors duration-200
-                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
-                                        >
-                                            <option value="pending">📝 Pending</option>
-                                            <option value="in-progress">⏳ In Progress</option>
-                                            <option value="urgent">🚨 Urgent</option>
-                                            <option value="completed">✅ Completed</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
-                                            <MdFlag className="h-5 w-5 text-gray-400" />
-                                            Priority
-                                        </label>
-                                        <select
-                                            value={formData.priority}
-                                            onChange={(e) => setFormData({...formData, priority: Number(e.target.value)})}
-                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
-                                                shadow-sm transition-colors duration-200
-                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
-                                        >
-                                            <option value={0}>🟢 Low</option>
-                                            <option value={1}>🟡 Medium</option>
-                                            <option value={2}>🔴 High</option>
-                                        </select>
-                                    </div>
+                                {/* Status */}
+                                <div>
+                                    <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                                        <MdOutlineCategory className="h-5 w-5 text-gray-400" />
+                                        Status
+                                    </label>
+                                    <select
+                                        value={formData.status}
+                                        onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                        className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
+                                            shadow-sm transition-colors duration-200
+                                            focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
+                                    >
+                                        <option value="pending">📝 Pending</option>
+                                        <option value="in-progress">⏳ In Progress</option>
+                                        <option value="completed">✅ Completed</option>
+                                    </select>
                                 </div>
 
                                 {/* Due Date & Comment */}
