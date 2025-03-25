@@ -151,15 +151,15 @@ export default function Todo() {
                         </div>
 
                         {/* Stats Overview */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white rounded-xl shadow-sm p-6">
                             {/* Chart Card */}
-                            <div className="bg-white rounded-xl shadow-sm p-6">
+                            <div className="lg:col-span-1">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Overview</h3>
                                 <TodoSummaryChart stats={stats} />
                             </div>
 
                             {/* Stats Grid */}
-                            <div className="lg:col-span-2">
+                            <div className="lg:col-span-1">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold text-gray-900">Statistics</h3>
                                     <button
@@ -187,6 +187,7 @@ export default function Todo() {
                                             </div>
                                             <div>
                                                 <h3 className="text-gray-700 font-medium">{card.title}</h3>
+
                                             </div>
                                         </div>
                                     ))}

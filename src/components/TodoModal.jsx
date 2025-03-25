@@ -44,149 +44,162 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
 
     return (
         <div className={`fixed inset-0 z-50 overflow-y-auto ${isOpen ? '' : 'hidden'}`}>
-            <div className="flex min-h-screen items-end sm:items-center justify-center">
+            <div className="flex min-h-screen items-center justify-center p-4">
                 {/* Backdrop */}
                 <div 
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
                     onClick={onClose}
                 />
 
                 {/* Modal Panel */}
-                <div className="relative w-full sm:max-w-lg transform transition-all">
-                    {/* Mobile-optimized container */}
-                    <div className="relative bg-white rounded-t-2xl sm:rounded-xl shadow-xl 
-                        overflow-hidden max-h-[92vh] sm:max-h-[85vh]">
+                <div className={`relative w-full max-w-lg transform transition-all duration-300 ease-out
+                    ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+                    <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden">
                         {/* Header */}
-                        <div className="sticky top-0 z-10 bg-white px-4 py-4 sm:px-6 
-                            border-b border-gray-200 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                                {initialData ? 'Update Task' : 'New Task'}
-                            </h3>
-                            <button
-                                onClick={onClose}
-                                className="rounded-full p-2 text-gray-400 hover:text-gray-500
-                                    hover:bg-gray-100 focus:outline-none"
-                            >
-                                <MdClose className="h-5 w-5" />
-                            </button>
+                        <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-semibold text-white">
+                                    {initialData ? 'Update Task' : 'Create New Task'}
+                                </h3>
+                                <button
+                                    onClick={onClose}
+                                    className="rounded-full p-2 text-white/80 hover:text-white
+                                        hover:bg-white/10 focus:outline-none transition-colors"
+                                >
+                                    <MdClose className="h-5 w-5" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Form Content */}
-                        <div className="p-4 sm:p-6 overflow-y-auto">
+                        <div className="p-6 max-h-[calc(85vh-8rem)] overflow-y-auto">
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Title Input */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <div className="group">
+                                    <label className="inline-block text-sm font-medium text-gray-700 
+                                        after:content-['*'] after:ml-0.5 after:text-red-500">
                                         Title
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.title}
                                         onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                        className="block w-full rounded-lg border-gray-300 shadow-sm
-                                            focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 
+                                            shadow-sm transition-colors duration-200
+                                            focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
                                         placeholder="What needs to be done?"
                                         required
                                     />
                                 </div>
 
                                 {/* Status & Priority */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-6">
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <MdOutlineCategory className="h-5 w-5 text-gray-400" />
                                             Status
                                         </label>
                                         <select
                                             value={formData.status}
                                             onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                            className="block w-full rounded-lg border-gray-300 shadow-sm
-                                                focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
+                                                shadow-sm transition-colors duration-200
+                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
                                         >
-                                            <option value="pending">Pending</option>
-                                            <option value="in-progress">In Progress</option>
-                                            <option value="urgent">Urgent</option>
-                                            <option value="completed">Completed</option>
+                                            <option value="pending">📝 Pending</option>
+                                            <option value="in-progress">⏳ In Progress</option>
+                                            <option value="urgent">🚨 Urgent</option>
+                                            <option value="completed">✅ Completed</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                             <MdFlag className="h-5 w-5 text-gray-400" />
                                             Priority
                                         </label>
                                         <select
                                             value={formData.priority}
                                             onChange={(e) => setFormData({...formData, priority: Number(e.target.value)})}
-                                            className="block w-full rounded-lg border-gray-300 shadow-sm
-                                                focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
+                                                shadow-sm transition-colors duration-200
+                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
                                         >
-                                            <option value={0}>Low</option>
-                                            <option value={1}>Medium</option>
-                                            <option value={2}>High</option>
+                                            <option value={0}>🟢 Low</option>
+                                            <option value={1}>🟡 Medium</option>
+                                            <option value={2}>🔴 High</option>
                                         </select>
                                     </div>
                                 </div>
 
-                                {/* Due Date */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                        <MdAccessTime className="h-5 w-5 text-gray-400" />
-                                        Due Date
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={formData.dueDate}
-                                        onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                                        className="block w-full rounded-lg border-gray-300 shadow-sm
-                                            focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    />
-                                </div>
+                                {/* Due Date & Comment */}
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <MdAccessTime className="h-5 w-5 text-gray-400" />
+                                            Due Date
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={formData.dueDate}
+                                            onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
+                                                shadow-sm transition-colors duration-200
+                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
+                                            min={new Date().toISOString().slice(0, 16)}
+                                        />
+                                    </div>
 
-                                {/* Comment */}
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                        <MdComment className="h-5 w-5 text-gray-400" />
-                                        Comment
-                                    </label>
-                                    <textarea
-                                        value={formData.comment}
-                                        onChange={(e) => setFormData({...formData, comment: e.target.value})}
-                                        rows={3}
-                                        className="block w-full rounded-lg border-gray-300 shadow-sm
-                                            focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm
-                                            resize-none"
-                                        placeholder="Add any additional details..."
-                                    />
+                                    <div>
+                                        <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <MdComment className="h-5 w-5 text-gray-400" />
+                                            Comment
+                                        </label>
+                                        <textarea
+                                            value={formData.comment}
+                                            onChange={(e) => setFormData({...formData, comment: e.target.value})}
+                                            rows={3}
+                                            className="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50
+                                                shadow-sm transition-colors duration-200 resize-none
+                                                focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
+                                            placeholder="Add any additional details..."
+                                        />
+                                    </div>
                                 </div>
                             </form>
                         </div>
 
                         {/* Footer */}
-                        <div className="sticky bottom-0 bg-gray-50 px-4 py-3 sm:px-6 
-                            border-t border-gray-200 flex flex-col sm:flex-row-reverse gap-2 sm:gap-3"></div>
-                            <button
-                                type="submit"
-                                onClick={handleSubmit}
-                                className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 text-white 
-                                    font-medium rounded-lg hover:bg-indigo-700 focus:outline-none 
-                                    focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                                {initialData ? 'Update Task' : 'Create Task'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="w-full sm:w-auto px-4 py-2.5 bg-white text-gray-700 
-                                    font-medium rounded-lg border border-gray-300 hover:bg-gray-50 
-                                    focus:outline-none focus:ring-2 focus:ring-offset-2 
-                                    focus:ring-indigo-500"
-                            >
-                                Cancel
-                            </button>
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="w-full sm:w-auto px-4 py-2.5 text-gray-700
+                                        font-medium rounded-lg border border-gray-300
+                                        hover:bg-gray-50 focus:outline-none focus:ring-2
+                                        focus:ring-offset-2 focus:ring-gray-500
+                                        transition-colors duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    onClick={handleSubmit}
+                                    className="w-full sm:w-auto px-4 py-2.5 text-white
+                                        font-medium rounded-lg bg-gradient-to-r
+                                        from-indigo-500 to-purple-500
+                                        hover:from-indigo-600 hover:to-purple-600
+                                        focus:outline-none focus:ring-2
+                                        focus:ring-offset-2 focus:ring-indigo-500
+                                        transition-all duration-200"
+                                >
+                                    {initialData ? 'Update Task' : 'Create Task'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        
+        </div>
     );
 }
