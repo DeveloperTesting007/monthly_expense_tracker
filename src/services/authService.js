@@ -1,49 +1,83 @@
 import { db } from '../config/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+    getAuth, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword,
+    signInWithPopup, 
+    GoogleAuthProvider,
+    signOut,
+    updateProfile,
+    sendPasswordResetEmail
+} from 'firebase/auth';
 
-export const signup = async (email, password, profileData) => {
-    const auth = getAuth();
+const auth = getAuth();
+
+export const signup = async (email, password, userData) => {
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        
+        await updateProfile(result.user, {
+            displayName: userData.name
+        });
 
-        // Save profile data to Firestore using user ID as the document ID
-        const userProfile = {
-            ...profileData,
+        await setDoc(doc(db, 'users', result.user.uid), {
+            name: userData.name,
+            email: email,
+            phone: userData.phone,
             createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        };
+            lastLogin: serverTimestamp()
+        });
 
-        await setDoc(doc(db, `monthly_tracker/${user.uid}`), { profile: userProfile });
-
-        return user;
+        return result;
     } catch (error) {
-        console.error('Signup error:', error);
-        throw new Error('Failed to sign up: ' + error.message);
+        throw error;
     }
 };
 
-export const signupWithGoogle = async () => {
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
+export const login = async (email, password) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    await updateDoc(doc(db, 'users', result.user.uid), {
+        lastLogin: serverTimestamp()
+    });
+    return result;
+};
 
-        // Save profile data to Firestore using user ID as the document ID
-        const userProfile = {
-            name: user.displayName,
-            email: user.email,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-        };
+export const signInWithGoogle = async () => {
+    const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    const userData = {
+        name: result.user.displayName || '',
+        email: result.user.email || '',
+        phone: result.user.phoneNumber || '',
+        photoURL: result.user.photoURL || '',
+        lastLogin: serverTimestamp(),
+        updatedAt: serverTimestamp()
+    };
 
-        await setDoc(doc(db, `monthly_tracker/${user.uid}`), { profile: userProfile });
+    await setDoc(doc(db, 'users', result.user.uid), {
+        ...userData,
+        createdAt: serverTimestamp()
+    }, { merge: true });
 
-        return user;
-    } catch (error) {
-        console.error('Google signup error:', error);
-        throw new Error('Failed to sign up with Google: ' + error.message);
-    }
+    return result;
+};
+
+export const updateUserProfile = async (user, userData) => {
+    await updateProfile(user, {
+        displayName: userData.name,
+        photoURL: userData.photoURL
+    });
+
+    await updateDoc(doc(db, 'users', user.uid), {
+        ...userData,
+        updatedAt: serverTimestamp()
+    });
+};
+
+export const resetPassword = async (email) => {
+    return sendPasswordResetEmail(auth, email);
+};
+
+export const logoutUser = async () => {
+    return signOut(auth);
 };
