@@ -1,15 +1,20 @@
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, getDoc } from 'firebase/firestore';
 
 export class TodoService {
+    static getTodosRef(userId) {
+        return collection(db, 'monthly_tracker', userId, 'todos');
+    }
+
+    static getTodoDoc(userId, todoId) {
+        return doc(db, 'monthly_tracker', userId, 'todos', todoId);
+    }
+
     static async getTodoStats(userId) {
         if (!userId) return null;
 
-        const q = query(
-            collection(db, 'todos'),
-            where('userId', '==', userId)
-        );
-        const querySnapshot = await getDocs(q);
+        const todosRef = this.getTodosRef(userId);
+        const querySnapshot = await getDocs(todosRef);
         const todos = querySnapshot.docs.map(doc => doc.data());
 
         const statusCounts = todos.reduce((acc, todo) => {
@@ -38,7 +43,13 @@ export class TodoService {
     }
 
     static async getTodos(userId) {
-        const q = query(collection(db, 'todos'), where('userId', '==', userId));
+        const todosRef = this.getTodosRef(userId);
+        // Create a compound query that matches the index
+        const q = query(
+            todosRef,
+            orderBy('priority', 'desc'),
+            orderBy('createdAt', 'desc')
+        );
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({
             id: doc.id,
@@ -47,25 +58,64 @@ export class TodoService {
     }
 
     static async addTodo(userId, todoData) {
+        const todosRef = this.getTodosRef(userId);
         const todo = {
             ...todoData,
-            userId,
             createdAt: new Date().toISOString(),
             status: todoData.status || 'pending',
-            completed: false
+            priority: todoData.priority || 0, // 0: Low, 1: Medium, 2: High
+            completed: false,
+            history: [{
+                action: 'created',
+                timestamp: new Date().toISOString(),
+                details: 'Task created'
+            }]
         };
-        const docRef = await addDoc(collection(db, 'todos'), todo);
+        const docRef = await addDoc(todosRef, todo);
         return { id: docRef.id, ...todo };
     }
 
-    static async updateTodo(todoId, updates) {
-        const todoRef = doc(db, 'todos', todoId);
-        await updateDoc(todoRef, updates);
-        return { id: todoId, ...updates };
+    static async updateTodo(userId, todoId, updates) {
+        const todoRef = this.getTodoDoc(userId, todoId);
+        const docSnap = await getDoc(todoRef);
+        const currentData = docSnap.data();
+
+        const historyEntry = {
+            action: 'updated',
+            timestamp: new Date().toISOString(),
+            details: this.generateHistoryDetails(currentData, updates)
+        };
+
+        const updatedData = {
+            ...updates,
+            history: [...(currentData.history || []), historyEntry]
+        };
+
+        await updateDoc(todoRef, updatedData);
+        return { id: todoId, ...currentData, ...updatedData };
     }
 
-    static async deleteTodo(todoId) {
-        const todoRef = doc(db, 'todos', todoId);
+    static generateHistoryDetails(oldData, newData) {
+        const changes = [];
+        if (oldData.status !== newData.status) {
+            changes.push(`Status changed from ${oldData.status} to ${newData.status}`);
+        }
+        if (oldData.priority !== newData.priority) {
+            changes.push(`Priority changed from ${this.getPriorityLabel(oldData.priority)} to ${this.getPriorityLabel(newData.priority)}`);
+        }
+        if (oldData.title !== newData.title) {
+            changes.push('Title updated');
+        }
+        return changes.join(', ');
+    }
+
+    static getPriorityLabel(priority) {
+        const priorities = ['Low', 'Medium', 'High'];
+        return priorities[priority] || 'Unknown';
+    }
+
+    static async deleteTodo(userId, todoId) {
+        const todoRef = this.getTodoDoc(userId, todoId);
         await deleteDoc(todoRef);
         return todoId;
     }

@@ -64,8 +64,9 @@ export function TodoProvider({ children }) {
     }, [currentUser?.uid, fetchTodoStats]);
 
     const updateTodo = useCallback(async (todoId, updates) => {
+        if (!currentUser?.uid) return;
         try {
-            await TodoService.updateTodo(todoId, updates);
+            await TodoService.updateTodo(currentUser.uid, todoId, updates);
             setTodos(prev => prev.map(todo => 
                 todo.id === todoId ? { ...todo, ...updates } : todo
             ));
@@ -74,18 +75,19 @@ export function TodoProvider({ children }) {
             setError('Failed to update todo');
             throw err;
         }
-    }, [fetchTodoStats]);
+    }, [currentUser?.uid, fetchTodoStats]);
 
     const deleteTodo = useCallback(async (todoId) => {
+        if (!currentUser?.uid) return;
         try {
-            await TodoService.deleteTodo(todoId);
+            await TodoService.deleteTodo(currentUser.uid, todoId);
             setTodos(prev => prev.filter(todo => todo.id !== todoId));
             await fetchTodoStats();
         } catch (err) {
             setError('Failed to delete todo');
             throw err;
         }
-    }, [fetchTodoStats]);
+    }, [currentUser?.uid, fetchTodoStats]);
 
     const value = {
         stats,

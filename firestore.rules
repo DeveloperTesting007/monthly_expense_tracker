@@ -39,6 +39,18 @@ service cloud.firestore {
         allow create: if isAuthenticated() && isOwner(userId);
         allow update, delete: if isAuthenticated() && isOwner(userId);
       }
+
+      match /monthly_tracker/{userId}/todos/{todoId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() 
+          && isOwner(userId)
+          && validTodo(request.resource.data);
+        allow update: if isAuthenticated() 
+          && isOwner(userId)
+          && validTodoUpdate(request.resource.data);
+        allow delete: if isAuthenticated() 
+          && isOwner(userId);
+      }
     }
 
     // Users collection - User-specific access
@@ -60,20 +72,22 @@ service cloud.firestore {
     }
 
     function validTodo(todo) {
-      return todo.size() >= 4 
+      return todo.size() >= 5 
         && todo.title is string 
         && todo.title.size() > 0 
         && todo.title.size() <= 100
         && todo.status in ['pending', 'in-progress', 'urgent', 'completed']
-        && todo.userId is string
-        && todo.createdAt is string;
+        && todo.priority in [0, 1, 2]
+        && todo.createdAt is string
+        && todo.history is list;
     }
 
     function validTodoUpdate(todo) {
-      return todo.title is string 
+      return (todo.title is string 
         && todo.title.size() > 0 
-        && todo.title.size() <= 100
-        && todo.status in ['pending', 'in-progress', 'urgent', 'completed'];
+        && todo.title.size() <= 100)
+        || todo.status in ['pending', 'in-progress', 'urgent', 'completed']
+        || todo.priority in [0, 1, 2];
     }
   }
 }

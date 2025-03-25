@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTodo } from '../contexts/TodoContext';
+import { MdHistory, MdLowPriority, MdPriorityHigh } from 'react-icons/md';
 
 export default function TodoList() {
     const { 
@@ -12,6 +13,7 @@ export default function TodoList() {
         deleteTodo 
     } = useTodo();
     const [newTodoText, setNewTodoText] = useState('');
+    const [showHistory, setShowHistory] = useState(null);
 
     useEffect(() => {
         fetchTodos();
@@ -24,7 +26,8 @@ export default function TodoList() {
         try {
             await addTodo({
                 title: newTodoText,
-                status: 'pending'
+                status: 'pending',
+                priority: 0 // Default to low priority
             });
             setNewTodoText('');
         } catch (err) {
@@ -40,12 +43,25 @@ export default function TodoList() {
         }
     };
 
+    const handlePriorityChange = async (todoId, newPriority) => {
+        try {
+            await updateTodo(todoId, { priority: parseInt(newPriority) });
+        } catch (err) {
+            console.error('Failed to update priority:', err);
+        }
+    };
+
     const handleDelete = async (todoId) => {
         try {
             await deleteTodo(todoId);
         } catch (err) {
             console.error('Failed to delete todo:', err);
         }
+    };
+
+    const getPriorityColor = (priority) => {
+        const colors = ['text-gray-500', 'text-yellow-500', 'text-red-500'];
+        return colors[priority] || colors[0];
     };
 
     if (isLoading) return <div>Loading...</div>;
@@ -71,26 +87,58 @@ export default function TodoList() {
 
             <ul className="space-y-2">
                 {todos.map((todo) => (
-                    <li key={todo.id} className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
-                        <span>{todo.title}</span>
-                        <div className="flex gap-2">
-                            <select
-                                value={todo.status}
-                                onChange={(e) => handleStatusChange(todo.id, e.target.value)}
-                                className="px-2 py-1 border rounded"
-                            >
-                                <option value="pending">Pending</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="urgent">Urgent</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                            <button
-                                onClick={() => handleDelete(todo.id)}
-                                className="px-2 py-1 text-red-500"
-                            >
-                                Delete
-                            </button>
+                    <li key={todo.id} className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <MdPriorityHigh className={getPriorityColor(todo.priority)} />
+                                <span>{todo.title}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={todo.priority}
+                                    onChange={(e) => handlePriorityChange(todo.id, e.target.value)}
+                                    className="px-2 py-1 border rounded"
+                                >
+                                    <option value={0}>Low</option>
+                                    <option value={1}>Medium</option>
+                                    <option value={2}>High</option>
+                                </select>
+                                <select
+                                    value={todo.status}
+                                    onChange={(e) => handleStatusChange(todo.id, e.target.value)}
+                                    className="px-2 py-1 border rounded"
+                                >
+                                    <option value="pending">Pending</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                                <button
+                                    onClick={() => setShowHistory(showHistory === todo.id ? null : todo.id)}
+                                    className="p-1 text-gray-500 hover:text-gray-700"
+                                >
+                                    <MdHistory size={20} />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(todo.id)}
+                                    className="px-2 py-1 text-red-500"
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </div>
+                        {showHistory === todo.id && todo.history && (
+                            <div className="ml-4 p-3 bg-gray-50 rounded-lg">
+                                <h4 className="font-medium mb-2">History</h4>
+                                <ul className="space-y-1">
+                                    {todo.history.map((entry, index) => (
+                                        <li key={index} className="text-sm text-gray-600">
+                                            {new Date(entry.timestamp).toLocaleString()}: {entry.details}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </li>
                 ))}
             </ul>
