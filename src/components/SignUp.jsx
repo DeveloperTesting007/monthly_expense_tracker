@@ -240,7 +240,7 @@ export default function SignUp() {
                         </div>
                     </div>
 
-                    <div className="relative my-6">
+                    {/* <div className="relative my-6">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-gray-300" />
                         </div>
@@ -249,7 +249,7 @@ export default function SignUp() {
                         </div>
                     </div>
 
-                    <GoogleButton onClick={handleGoogleSignIn} disabled={loading} />
+                    <GoogleButton onClick={handleGoogleSignIn} disabled={loading} /> */}
 
                     <div>
                         <button
