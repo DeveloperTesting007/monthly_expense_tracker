@@ -102,9 +102,10 @@ export default function TodoModal({ isOpen, onClose, onSubmit, initialData }) {
                                             shadow-sm transition-colors duration-200
                                             focus:border-indigo-500 focus:ring-indigo-500 focus:bg-white"
                                     >
-                                        <option value="pending">📝 Pending</option>
-                                        <option value="in-progress">⏳ In Progress</option>
-                                        <option value="completed">✅ Completed</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="in-progress">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="urgent">Urgent</option>
                                     </select>
                                 </div>
 

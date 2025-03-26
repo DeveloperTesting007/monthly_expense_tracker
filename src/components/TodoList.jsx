@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
     MdCheckCircle, MdRadioButtonUnchecked, MdEdit, 
-    MdDelete, MdAccessTime, MdMoreVert 
+    MdDelete, MdAccessTime, MdMoreVert, MdVisibility,
+    MdSort, MdArrowUpward, MdArrowDownward, MdSearch,
+    MdOutlineCalendarToday 
 } from 'react-icons/md';
 import { useTodo } from '../contexts/TodoContext';
 import TodoModal from './TodoModal';
+import TodoDetailModal from './TodoDetailModal';
 
 export default function TodoList({ onUpdate, autoLoad = false }) {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedTodo, setSelectedTodo] = useState(null);
     const [previousStatus, setPreviousStatus] = useState({});
     const { todos, isLoading, fetchTodos, updateTodo, deleteTodo } = useTodo();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortConfig, setSortConfig] = useState({
+        key: 'status',
+        direction: 'asc'
+    });
 
     useEffect(() => {
         if (autoLoad) {
@@ -21,6 +30,11 @@ export default function TodoList({ onUpdate, autoLoad = false }) {
     const handleEdit = (todo) => {
         setSelectedTodo(todo);
         setIsEditModalOpen(true);
+    };
+
+    const handleViewDetail = (todo) => {
+        setSelectedTodo(todo);
+        setIsDetailModalOpen(true);
     };
 
     const handleUpdate = async (formData) => {
@@ -63,9 +77,44 @@ export default function TodoList({ onUpdate, autoLoad = false }) {
         }
     };
 
+    const handleSort = () => {
+        setSortConfig(prev => ({
+            key: 'status',
+            direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const getStatusPriority = (status) => {
+        const priorities = {
+            'urgent': 1,
+            'pending': 2,
+            'in-progress': 3,
+            'completed': 4
+        };
+        return priorities[status] || 999;
+    };
+
+    const filteredAndSortedTodos = useMemo(() => {
+        if (!todos) return [];
+        
+        return [...todos]
+            .filter(todo => 
+                todo.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .sort((a, b) => {
+                // First sort by status priority
+                const statusCompare = getStatusPriority(a.status) - getStatusPriority(b.status);
+                if (statusCompare !== 0) return statusCompare;
+                
+                // Then sort by creation date (newest first)
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+    }, [todos, searchQuery]);
+
     const getStatusColor = (status) => {
         const colors = {
-            pending: 'bg-gray-100 text-gray-700',
+            urgent: 'bg-red-100 text-red-700',
+            pending: 'bg-yellow-100 text-yellow-700',
             'in-progress': 'bg-blue-100 text-blue-700',
             completed: 'bg-green-100 text-green-700'
         };
@@ -82,9 +131,36 @@ export default function TodoList({ onUpdate, autoLoad = false }) {
 
     return (
         <div className="space-y-2 sm:space-y-4">
+            {/* Search and Sort Controls */}
+            <div className="flex items-center justify-between gap-4 pb-2 border-b border-gray-100">
+                <div className="relative flex-1 max-w-md">
+                    <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search tasks..."
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 
+                            focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                </div>
+                <button
+                    onClick={handleSort}
+                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm
+                        ${sortConfig.direction === 'asc' 
+                            ? 'bg-blue-50 text-blue-600' 
+                            : 'bg-gray-50 text-gray-600'}`}
+                >
+                    Sort by Status
+                    {sortConfig.direction === 'asc' 
+                        ? <MdArrowUpward className="h-4 w-4" />
+                        : <MdArrowDownward className="h-4 w-4" />}
+                </button>
+            </div>
+
             {/* Task List */}
             <div className="divide-y divide-gray-100">
-                {todos.map((todo) => (
+                {filteredAndSortedTodos.map((todo) => (
                     <div
                         key={todo._id}
                         className="group flex items-start sm:items-center gap-3 py-2.5 sm:py-3 
@@ -113,20 +189,31 @@ export default function TodoList({ onUpdate, autoLoad = false }) {
                                 </span>
                             </div>
 
-                            {/* Due Date */}
-                            {todo.dueDate && (
-                                <div className="mt-0.5 sm:mt-1">
-                                    <span className="inline-flex items-center text-[11px] sm:text-xs text-gray-500">
-                                        <MdAccessTime className="mr-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                                        {new Date(todo.dueDate).toLocaleDateString()}
+                            {/* Dates */}
+                            <div className="mt-1 flex items-center gap-3 text-[11px] sm:text-xs text-gray-500">
+                                <span className="inline-flex items-center">
+                                    <MdOutlineCalendarToday className="mr-0.5 h-3 w-3" />
+                                    Created {new Date(todo.createdAt).toLocaleDateString()}
+                                </span>
+                                {todo.dueDate && (
+                                    <span className="inline-flex items-center">
+                                        <MdAccessTime className="mr-0.5 h-3 w-3" />
+                                        Due {new Date(todo.dueDate).toLocaleDateString()}
                                     </span>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 sm:gap-2 opacity-0 group-hover:opacity-100 
                             transition-opacity duration-150">
+                            <button
+                                onClick={() => handleViewDetail(todo)}
+                                className="p-0.5 sm:p-1 text-gray-400 hover:text-blue-500 
+                                    hover:bg-blue-50 rounded-full transition-colors"
+                            >
+                                <MdVisibility className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            </button>
                             <button
                                 onClick={() => handleEdit(todo)}
                                 className="p-0.5 sm:p-1 text-gray-400 hover:text-gray-500 
@@ -150,12 +237,20 @@ export default function TodoList({ onUpdate, autoLoad = false }) {
                 ))}
             </div>
 
-            {/* Edit Modal */}
+            {/* Modals */}
             <TodoModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 onSubmit={handleUpdate}
                 initialData={selectedTodo}
+            />
+            <TodoDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => {
+                    setIsDetailModalOpen(false);
+                    setSelectedTodo(null);
+                }}
+                todo={selectedTodo}
             />
         </div>
     );
