@@ -113,6 +113,8 @@ export class AuthService {
             
             // Create/Update user document for Google Sign-in
             await this.createUserDocument(result.user);
+            console.log('result', result);
+            await CategoryService.createDefaultCategories(result.user.uid);
             
             return {
                 user: result.user,

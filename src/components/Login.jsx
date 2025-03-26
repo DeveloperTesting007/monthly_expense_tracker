@@ -15,29 +15,29 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, signInWithGoogle } = useAuth();
+    const [error, setError] = useState('');
+    const { login, loginWithGoogle } = useAuth();  // Changed from signInWithGoogle to loginWithGoogle
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const location = useLocation();
 
     useEffect(() => {
-        // Clear any expired session messages
         const params = new URLSearchParams(location.search);
         if (params.get('expired') === 'true') {
-            // Session expired message is handled by AuthContext
+            setError('Your session has expired. Please sign in again.');
         }
     }, [location]);
 
     async function handleSubmit(e) {
         e.preventDefault();
         try {
+            setError('');
             setLoading(true);
             await login(email, password);
-            // Redirect to the page they tried to visit or dashboard
             const intendedPath = location.state?.from?.pathname || '/dashboard';
             navigate(intendedPath);
         } catch (err) {
-            // Error is handled in AuthContext
+            setError(err.message || 'Failed to sign in. Please check your credentials.');
         } finally {
             setLoading(false);
         }
@@ -45,11 +45,12 @@ export default function Login() {
 
     const handleGoogleSignIn = async () => {
         try {
+            setError('');
             setLoading(true);
-            await signInWithGoogle();
-            navigate('/dashboard');  // Changed from '/' to '/dashboard'
+            await loginWithGoogle();  // Changed from signInWithGoogle to loginWithGoogle
+            navigate('/dashboard');
         } catch (err) {
-            // Error handled by AuthContext
+            setError(err.message || 'Failed to sign in with Google.');
         } finally {
             setLoading(false);
         }
@@ -66,6 +67,12 @@ export default function Login() {
                         Sign in to your account
                     </h2>
                 </div>
+
+                {error && (
+                    <div className="mb-4 p-3 rounded bg-red-50 border border-red-200">
+                        <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                )}
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4">
@@ -118,6 +125,17 @@ export default function Login() {
                                     )}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                            <Link
+                                to="/forgot-password"
+                                className="font-medium text-indigo-600 hover:text-indigo-500"
+                            >
+                                Forgot your password?
+                            </Link>
                         </div>
                     </div>
 
