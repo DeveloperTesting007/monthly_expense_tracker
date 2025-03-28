@@ -11,7 +11,6 @@ export default function Todo() {
     const { stats, isLoading, setError, fetchTodoStats, addTodo } = useTodo();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { currentUser } = useAuth();
-    const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showMobileStats, setShowMobileStats] = useState(false);
 
@@ -99,58 +98,47 @@ export default function Todo() {
 
             {/* Main Content */}
             <div className="flex-1 lg:ml-64">
-                <div className="p-4 sm:p-6 lg:p-8">
-                    <div className="max-w-7xl mx-auto space-y-6">
+                <div className="p-4 sm:p-6 lg:p-8 bg-gray-50/30">
+                    <div className="max-w-7xl mx-auto space-y-8">
                         {/* Updated Header with collapsible description */}
-                        <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm">
-                            <div className="flex items-center justify-between py-4">
-                                <div className="flex items-center gap-3">
+                        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
                                     <button
-                                        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                        className="lg:hidden p-2.5 rounded-xl hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                         onClick={() => setIsMobileMenuOpen(true)}
-                                        aria-label="Open menu"
                                     >
-                                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                         </svg>
                                     </button>
                                     <div>
-                                        <h1 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                                        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
                                             Task Management
                                         </h1>
-                                        <button
-                                            onClick={() => setIsDescriptionVisible(!isDescriptionVisible)}
-                                            className="text-sm text-gray-600 hover:text-gray-800 focus:outline-none"
-                                        >
-                                            {isDescriptionVisible ? 'Hide description' : 'Show description'}
-                                        </button>
-                                        {isDescriptionVisible && (
-                                            <p className="text-sm text-gray-600 mt-1 transition-all duration-300">
-                                                Track and manage your daily tasks
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
 
-                                {/* Refresh Button */}
                                 <button
                                     onClick={handleRefresh}
                                     disabled={isLoading}
-                                    className={`p-2 rounded-lg transition-all duration-200 
+                                    className={`p-2.5 rounded-xl transition-all duration-200 
                                         ${isLoading
                                             ? 'bg-gray-100 text-gray-400'
-                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:scale-105'}`}
                                 >
-                                    <MdRefresh
-                                        size={24}
-                                        className={`${isLoading ? 'animate-spin' : ''}`}
-                                    />
+                                    <MdRefresh size={22} className={`${isLoading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
-                        </div>
+                     
+                                <p className="text-sm text-gray-600 mt-2 pl-16 lg:pl-0 animate-fadeIn">
+                                    Track and manage your daily tasks efficiently
+                                </p>
+                           
+                        
 
                         {/* Stats Overview */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white rounded-xl shadow-sm p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
                             {/* Chart Card */}
                             <div className="lg:col-span-1">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Overview</h3>
@@ -193,15 +181,16 @@ export default function Todo() {
                                 </div>
                             </div>
                         </div>
+                        </div>
 
                         {/* Todo List Section */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                <h2 className="text-lg font-semibold text-gray-800">Tasks</h2>
+                        <div className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                                <h2 className="text-xl font-semibold text-gray-800">Tasks</h2>
                                 <button
                                     onClick={handleRefresh}
                                     disabled={isLoading}
-                                    className={`p-2 rounded-lg transition-all duration-200 
+                                    className={`p-2.5 rounded-xl transition-all duration-200 
                                         ${isLoading ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                                 >
                                     <MdRefresh
@@ -220,16 +209,20 @@ export default function Todo() {
                 {/* Floating Action Button */}
                 <button
                     onClick={() => setShowModal(true)}
-                    className="fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-40 
-                        inline-flex items-center justify-center p-4 rounded-full 
-                        bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 
+                    className="fixed right-6 bottom-6 z-40 
+                        inline-flex items-center justify-center w-14 h-14 rounded-full
+                        bg-gradient-to-r from-indigo-600 to-purple-600 text-white 
+                        shadow-lg hover:shadow-indigo-500/25
+                        hover:from-indigo-500 hover:to-purple-500
                         focus:outline-none focus:ring-2 focus:ring-offset-2 
                         focus:ring-indigo-500 transition-all duration-200
-                        hover:scale-105"
+                        hover:scale-110 hover:rotate-90
+                        animate-pulse hover:animate-none"
                     aria-label="Add new task"
                 >
-                    <MdAdd className="h-6 w-6" />
+                    <MdAdd className="h-7 w-7" />
                 </button>
+
             </div>
 
             {/* Modal */}

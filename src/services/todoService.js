@@ -111,18 +111,18 @@ export class TodoService {
         if (oldData.status !== newData.status) {
             changes.push(`Status changed from ${oldData.status} to ${newData.status}`);
         }
-        if (oldData.priority !== newData.priority) {
-            changes.push(`Priority changed from ${this.getPriorityLabel(oldData.priority)} to ${this.getPriorityLabel(newData.priority)}`);
-        }
+        // if (oldData.priority !== newData.priority) {
+        //     changes.push(`Priority changed from ${this.getPriorityLabel(oldData.priority)} to ${this.getPriorityLabel(newData.priority)}`);
+        // }
         if (oldData.title !== newData.title) {
             changes.push('Title updated');
         }
         if (oldData.dueDate !== newData.dueDate) {
             changes.push('Due date updated');
         }
-        if (newData.comment) {
-            changes.push('Comment added');
-        }
+        // if (newData.comment) {
+        //     changes.push('Comment added');
+        // }
         return changes.join(', ');
     }
 
